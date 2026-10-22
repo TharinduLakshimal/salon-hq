@@ -32,7 +32,7 @@ Open your terminal (PowerShell, Command Prompt, or Git Bash) and run:
 
 ```bash
 # 1. Clone the repository
-git clone <your-github-repo-url>
+git clone https://github.com/TharinduLakshimal/salon-hq.git
 cd salon-hq
 
 # 2. Install PHP & Frontend dependencies
