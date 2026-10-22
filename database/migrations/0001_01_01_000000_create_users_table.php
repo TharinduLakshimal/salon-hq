@@ -11,14 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // The Central Users Table (Handles Owners, Workers, and Clients)
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+
+            // Basic Identity & Contact
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->timestamp('email_verified_at')->nullable(); // Required for Gmail verification feature
             $table->string('password');
-            $table->rememberToken();
-            $table->timestamps();
+            $table->string('phone_number', 25)->nullable();
+            $table->enum('gender', ['male', 'female', 'other'])->nullable();
+
+            // Access Control
+            $table->enum('role', ['owner', 'worker', 'client'])->default('client')->index();
+
+            // Authentication & Timestamps
+            $table->rememberToken(); // Adds the remember_token column
+            $table->timestamps();    // Adds created_at and updated_at columns
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
