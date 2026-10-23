@@ -20,14 +20,25 @@ Make sure the following are installed on your computer:
 - **PHP 8.5 or higher (Required)**
 - **Composer**
 - **Node.js & NPM**
-- **MySQL Server** (e.g., XAMPP, Laragon, or Laravel Herd)
+- **MySQL Server** (e.g., Laragon, XAMPP, or Laravel Herd)
 
-> **💡 How to Install PHP 8.5 on Windows (PowerShell):**
-> Check your version first with `php -v`. If your PHP version is below **8.5**, run this command in PowerShell to install **PHP 8.5**:
-> ```powershell
-> Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
-> ```
-> *(Make sure `C:\Users\<YourUser>\.config\herd-lite\bin` is placed above `C:\xampp\php` in your Windows Environment `Path`, or select PHP 8.5 inside Laragon).*
+#### 💡 How to Download & Add PHP 8.5 (For Laragon / Windows Users)
+If your `php -v` shows an older PHP version, follow these steps to install **PHP 8.5**:
+
+1. **Download PHP 8.5 for Windows:**
+   - Go to **[https://www.php.net/downloads.php?os=windows](https://www.php.net/downloads.php?os=windows)**
+   - Download the **PHP 8.5 Thread Safe (`Win32-vs17-x64.zip`)** ZIP package.
+2. **If You Use Laragon:**
+   - Extract the downloaded ZIP folder into Laragon's PHP directory:
+     ```text
+     C:\laragon\bin\php\php-8.5.x-Win32-vs17-x64
+     ```
+   - Open **Laragon** → **Right-click** inside the window → **PHP** → **Version** → select **`php-8.5.x-Win32-vs17-x64`**.
+   - Click **Menu → Tools → Path → Add Laragon to Path**, then restart your terminal and verify with `php -v`.
+3. **Alternative (Quick PowerShell Install without Laragon):**
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
+   ```
 
 ---
 
