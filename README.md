@@ -6,23 +6,28 @@
 
 ## 🛠️ Tech Stack (TALL Stack)
 
-- **Backend:** Laravel 13 (PHP 8.3+)
+- **Backend:** Laravel 13 (**PHP 8.5+**)
 - **Reactive UI:** Livewire 4 & Alpine.js (bundled with Livewire)
 - **Styling & Assets:** Tailwind CSS v4 & Vite
 - **Database:** MySQL (`salon_hq`)
 
 ---
 
-## 🚀 How to Set Up After Cloning from GitHub
+## 🚀 How to Set Up After Cloning from GitHub / GitLab
 
 ### 1. Prerequisites
 Make sure the following are installed on your computer:
-- **PHP 8.3 or 8.4+**
+- **PHP 8.5 or higher (Required)**
 - **Composer**
 - **Node.js & NPM**
 - **MySQL Server** (e.g., XAMPP, Laragon, or Laravel Herd)
 
-*(Tip for Windows users: if your terminal `php -v` shows an older PHP version from XAMPP, install PHP 8.4 via `https://php.new/install/windows/8.4` and place it above `C:\xampp\php` in your Windows `Path`).*
+> **💡 How to Install PHP 8.5 on Windows (PowerShell):**
+> Check your version first with `php -v`. If your PHP version is below **8.5**, run this command in PowerShell to install **PHP 8.5**:
+> ```powershell
+> Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
+> ```
+> *(Make sure `C:\Users\<YourUser>\.config\herd-lite\bin` is placed above `C:\xampp\php` in your Windows Environment `Path`, or select PHP 8.5 inside Laragon).*
 
 ---
 
