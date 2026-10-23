@@ -2,10 +2,12 @@
 
 namespace App\Livewire;
 
+use App\Models\Category;
 use App\Models\Staff;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 class StaffDirectory extends Component
@@ -90,6 +92,11 @@ class StaffDirectory extends Component
         ];
 
         DB::transaction(function () use ($validated, $skills, $gradients) {
+            $categoryModel = Category::firstOrCreate(
+                ['slug' => Str::slug($validated['category'])],
+                ['name' => $validated['category']]
+            );
+
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -102,17 +109,18 @@ class StaffDirectory extends Component
 
             Staff::create([
                 'user_id' => $user->id,
+                'category_id' => $categoryModel->id,
                 'job_title' => $validated['job_title'],
-                'category' => $validated['category'],
                 'serves_gender' => $validated['serves_gender'],
                 'availability_status' => 'available',
                 'experience' => $validated['experience'],
                 'joined_date' => now()->format('F Y'),
+                'commission_percentage' => 20.00,
                 'rating' => 5.0,
                 'reviews_count' => 0,
                 'completed_works' => 0,
                 'today_bookings' => 0,
-                'monthly_revenue' => 'Rs. 0',
+                'monthly_revenue' => 0.00,
                 'repeat_clients' => '100%',
                 'avatar_gradient' => $gradients[array_rand($gradients)],
                 'bio' => $validated['bio'] ?: 'Dedicated salon specialist at Salon HQ.',
@@ -134,10 +142,12 @@ class StaffDirectory extends Component
 
     public function render(): View
     {
-        $query = Staff::with(['user', 'works'])->orderBy('id');
+        $query = Staff::with(['user', 'category', 'works'])->orderBy('id');
 
         if ($this->activeCategory !== 'all') {
-            $query->where('category', $this->activeCategory);
+            $query->whereHas('category', function ($cq) {
+                $cq->where('name', $this->activeCategory);
+            });
         }
 
         if ($this->activeGender !== 'all') {
@@ -148,8 +158,10 @@ class StaffDirectory extends Component
             $searchTerm = '%'.trim($this->search).'%';
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('job_title', 'like', $searchTerm)
-                    ->orWhere('category', 'like', $searchTerm)
                     ->orWhere('specialties', 'like', $searchTerm)
+                    ->orWhereHas('category', function ($cq) use ($searchTerm) {
+                        $cq->where('name', 'like', $searchTerm);
+                    })
                     ->orWhereHas('user', function ($uq) use ($searchTerm) {
                         $uq->where('name', 'like', $searchTerm)
                             ->orWhere('phone_number', 'like', $searchTerm);
@@ -163,4 +175,3 @@ class StaffDirectory extends Component
         ]);
     }
 }
-

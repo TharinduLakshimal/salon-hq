@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Staff;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class StaffController extends Controller
@@ -16,7 +18,7 @@ class StaffController extends Controller
      */
     public function index(): View
     {
-        $staffMembers = Staff::with(['user', 'works'])->orderBy('id')->get();
+        $staffMembers = Staff::with(['user', 'category', 'works'])->orderBy('id')->get();
 
         return view('staff.index', compact('staffMembers'));
     }
@@ -52,6 +54,11 @@ class StaffController extends Controller
         ];
 
         DB::transaction(function () use ($validated, $skills, $gradients) {
+            $categoryModel = Category::firstOrCreate(
+                ['slug' => Str::slug($validated['category'])],
+                ['name' => $validated['category']]
+            );
+
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -64,17 +71,18 @@ class StaffController extends Controller
 
             Staff::create([
                 'user_id' => $user->id,
+                'category_id' => $categoryModel->id,
                 'job_title' => $validated['job_title'],
-                'category' => $validated['category'],
                 'serves_gender' => $validated['serves_gender'],
                 'availability_status' => 'available',
                 'experience' => $validated['experience'],
                 'joined_date' => now()->format('F Y'),
+                'commission_percentage' => 20.00,
                 'rating' => 5.0,
                 'reviews_count' => 0,
                 'completed_works' => 0,
                 'today_bookings' => 0,
-                'monthly_revenue' => 'Rs. 0',
+                'monthly_revenue' => 0.00,
                 'repeat_clients' => '100%',
                 'avatar_gradient' => $gradients[array_rand($gradients)],
                 'bio' => $validated['bio'] ?: 'Dedicated salon specialist at Salon HQ.',
@@ -96,7 +104,7 @@ class StaffController extends Controller
      */
     public function show(int $id): View
     {
-        $staff = Staff::with(['user', 'works'])->findOrFail($id);
+        $staff = Staff::with(['user', 'category', 'works.category', 'shifts'])->findOrFail($id);
 
         return view('staff.show', compact('staff'));
     }
