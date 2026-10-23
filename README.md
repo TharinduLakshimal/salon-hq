@@ -6,23 +6,39 @@
 
 ## 🛠️ Tech Stack (TALL Stack)
 
-- **Backend:** Laravel 13 (PHP 8.3+)
+- **Backend:** Laravel 13 (**PHP 8.5+**)
 - **Reactive UI:** Livewire 4 & Alpine.js (bundled with Livewire)
 - **Styling & Assets:** Tailwind CSS v4 & Vite
 - **Database:** MySQL (`salon_hq`)
 
 ---
 
-## 🚀 How to Set Up After Cloning from GitHub
+## 🚀 How to Set Up After Cloning from GitHub / GitLab
 
 ### 1. Prerequisites
 Make sure the following are installed on your computer:
-- **PHP 8.3 or 8.4+**
+- **PHP 8.5 or higher (Required)**
 - **Composer**
 - **Node.js & NPM**
-- **MySQL Server** (e.g., XAMPP, Laragon, or Laravel Herd)
+- **MySQL Server** (e.g., Laragon, XAMPP, or Laravel Herd)
 
-*(Tip for Windows users: if your terminal `php -v` shows an older PHP version from XAMPP, install PHP 8.4 via `https://php.new/install/windows/8.4` and place it above `C:\xampp\php` in your Windows `Path`).*
+#### 💡 How to Download & Add PHP 8.5 (For Laragon / Windows Users)
+If your `php -v` shows an older PHP version, follow these steps to install **PHP 8.5**:
+
+1. **Download PHP 8.5 for Windows:**
+   - Go to **[https://www.php.net/downloads.php?os=windows](https://www.php.net/downloads.php?os=windows)**
+   - Download the **PHP 8.5 Thread Safe (`Win32-vs17-x64.zip`)** ZIP package.
+2. **If You Use Laragon:**
+   - Extract the downloaded ZIP folder into Laragon's PHP directory:
+     ```text
+     C:\laragon\bin\php\php-8.5.x-Win32-vs17-x64
+     ```
+   - Open **Laragon** → **Right-click** inside the window → **PHP** → **Version** → select **`php-8.5.x-Win32-vs17-x64`**.
+   - Click **Menu → Tools → Path → Add Laragon to Path**, then restart your terminal and verify with `php -v`.
+3. **Alternative (Quick PowerShell Install without Laragon):**
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
+   ```
 
 ---
 
