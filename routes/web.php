@@ -24,6 +24,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
     Route::get('/staff/{id}', [StaffController::class, 'show'])->name('staff.show');
+    Route::put('/staff/{id}', [StaffController::class, 'update'])->name('staff.update');
+    Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

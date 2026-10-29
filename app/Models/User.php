@@ -32,6 +32,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check whether this user is the main salon admin (owner).
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    /**
      * Staff profile if this user has role = 'worker'.
      */
     public function staffProfile(): HasOne

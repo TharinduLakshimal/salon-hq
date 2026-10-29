@@ -9,7 +9,13 @@
 @endsection
 
 @section('content')
-    <div x-data="{ activeTab: 'works' }">
+    <div x-data="{ activeTab: 'works', editOpen: {{ $errors->any() ? 'true' : 'false' }}, deleteOpen: false }">
+        @if ($errors->any())
+            <div class="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600 font-medium">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
         <!-- Hero Profile Card -->
         <div class="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 mb-6 grid grid-cols-1 lg:grid-cols-3 gap-8 shadow-2xs">
             <div class="lg:col-span-2 flex flex-col sm:flex-row items-start gap-6">
@@ -17,10 +23,42 @@
                     {{ $staff->initials }}
                 </div>
 
-                <div>
-                    <div class="flex flex-wrap items-center gap-2.5">
-                        <h1 class="text-2xl font-bold text-slate-900">{{ $staff->user?->name }}</h1>
-                        @include('includes.staff-badges', ['staff' => $staff])
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <h1 class="text-2xl font-bold text-slate-900">{{ $staff->user?->name }}</h1>
+                            @include('includes.staff-badges', ['staff' => $staff])
+                        </div>
+
+                        @if (auth()->user()?->isOwner())
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    @click="editOpen = true"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:border-indigo-600 hover:bg-indigo-50 text-xs font-semibold text-slate-700 hover:text-indigo-600 transition cursor-pointer"
+                                >
+                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    <span>Edit Staff</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="deleteOpen = true"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-600 text-xs font-semibold text-red-600 hover:text-white transition cursor-pointer"
+                                >
+                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                        <path d="M10 11v6"></path>
+                                        <path d="M14 11v6"></path>
+                                    </svg>
+                                    <span>Delete</span>
+                                </button>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="text-sm font-semibold text-indigo-600 mt-1 mb-3">{{ $staff->job_title }}</div>
@@ -153,5 +191,9 @@
                 @endforeach
             </div>
         </div>
+
+        @if (auth()->user()?->isOwner())
+            @include('staff.includes.profile-admin-modals')
+        @endif
     </div>
 @endsection
