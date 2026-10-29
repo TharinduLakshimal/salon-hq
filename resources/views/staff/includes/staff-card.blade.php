@@ -6,8 +6,8 @@
     class="group bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col shadow-2xs hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/10 transition duration-200"
 >
     <a href="{{ route('staff.show', $member->id) }}" wire:navigate class="flex-1 flex flex-col">
-        <div class="p-6 pb-4 flex items-start gap-4">
-            <div class="w-15 h-15 rounded-2xl flex items-center justify-center text-white text-xl font-bold shrink-0 shadow-md" style="background: {{ $member->avatar_gradient }}">
+        <div class="p-4 sm:p-6 pb-4 flex items-start gap-3.5 sm:gap-4">
+            <div class="w-14 h-14 sm:w-15 sm:h-15 rounded-2xl flex items-center justify-center text-white text-lg sm:text-xl font-bold shrink-0 shadow-md" style="background: {{ $member->avatar_gradient }}">
                 {{ $member->initials }}
             </div>
 
@@ -31,7 +31,7 @@
             </div>
         </div>
 
-        <div class="px-6 pb-4 flex flex-wrap gap-1.5">
+        <div class="px-4 sm:px-6 pb-4 flex flex-wrap gap-1.5">
             @foreach (array_slice($skills, 0, 3) as $skill)
                 <span class="bg-slate-100 text-slate-600 text-xs font-medium px-2.5 py-1 rounded-md">{{ $skill }}</span>
             @endforeach
@@ -40,7 +40,7 @@
             @endif
         </div>
 
-        <div class="mx-6 mb-5 p-3 bg-slate-50 border border-slate-100 rounded-xl grid grid-cols-3 text-center divide-x divide-slate-200">
+        <div class="mx-4 sm:mx-6 mb-5 p-3 bg-slate-50 border border-slate-100 rounded-xl grid grid-cols-3 text-center divide-x divide-slate-200">
             <div>
                 <div class="text-sm font-bold text-slate-900">{{ $member->experience }}</div>
                 <div class="text-[11px] text-slate-500 mt-0.5">Experience</div>
@@ -56,13 +56,13 @@
         </div>
     </a>
 
-    <div class="mt-auto px-6 py-3.5 border-t border-slate-200 bg-slate-50/50 group-hover:bg-indigo-50/60 flex items-center justify-between gap-2 text-xs font-semibold text-slate-500 transition">
-        <a href="{{ route('staff.show', $member->id) }}" wire:navigate class="hover:text-indigo-600 truncate">
+    <div class="mt-auto px-4 sm:px-6 py-3.5 border-t border-slate-200 bg-slate-50/50 group-hover:bg-indigo-50/60 flex flex-wrap items-center justify-between gap-2.5 text-xs font-semibold text-slate-500 transition">
+        <a href="{{ route('staff.show', $member->id) }}" wire:navigate class="hover:text-indigo-600 whitespace-nowrap">
             📞 {{ $member->user?->phone_number ?? 'N/A' }} &bull; View Profile &rarr;
         </a>
 
         @if ($isOwner ?? false)
-            <div class="flex items-center gap-1.5 shrink-0">
+            <div class="flex items-center gap-1.5 ml-auto">
                 <button
                     type="button"
                     wire:click="editStaff({{ $member->id }})"

@@ -12,15 +12,26 @@
     class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-100 flex flex-col transition-transform duration-200 -translate-x-full md:translate-x-0"
 >
     <!-- Brand Logo -->
-    <div class="px-6 py-5 flex items-center gap-3.5 border-b border-white/10">
-        @include('includes.brand-logo', [
-            'wrapperClass' => 'w-10 h-10 rounded-xl shrink-0 shadow-lg shadow-indigo-600/35',
-            'iconClass' => 'w-5 h-5',
-        ])
-        <div class="flex flex-col">
-            <span class="text-lg font-bold tracking-tight text-white leading-tight">Salon HQ</span>
-            <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Admin Workspace</span>
+    <div class="px-6 py-5 flex items-center justify-between gap-3.5 border-b border-white/10">
+        <div class="flex items-center gap-3.5 min-w-0">
+            @include('includes.brand-logo', [
+                'wrapperClass' => 'w-10 h-10 rounded-xl shrink-0 shadow-lg shadow-indigo-600/35',
+                'iconClass' => 'w-5 h-5',
+            ])
+            <div class="flex flex-col min-w-0">
+                <span class="text-lg font-bold tracking-tight text-white leading-tight truncate">Salon HQ</span>
+                <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400 truncate">Admin Workspace</span>
+            </div>
         </div>
+
+        <button
+            type="button"
+            @click="sidebarOpen = false"
+            aria-label="Close sidebar"
+            class="md:hidden w-8 h-8 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center shrink-0 cursor-pointer"
+        >
+            ✕
+        </button>
     </div>
 
     <!-- Navigation Menu -->
@@ -29,6 +40,7 @@
 
         <a href="{{ route('dashboard') }}"
            wire:navigate
+           @click="sidebarOpen = false"
            class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
             <svg class="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="3" width="7" height="7" rx="1"></rect>
@@ -72,6 +84,7 @@
 
         <a href="{{ route('staff.index') }}"
            wire:navigate
+           @click="sidebarOpen = false"
            class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('staff.*') ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
             <svg class="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
