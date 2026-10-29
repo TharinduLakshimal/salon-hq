@@ -12,12 +12,13 @@ class Staff extends Model
 
     protected $fillable = [
         'user_id',
+        'category_id',
         'job_title',
-        'category',
         'serves_gender',
         'availability_status',
         'experience',
         'joined_date',
+        'commission_percentage',
         'rating',
         'reviews_count',
         'completed_works',
@@ -35,7 +36,9 @@ class Staff extends Model
         return [
             'specialties' => 'array',
             'schedule' => 'array',
+            'commission_percentage' => 'decimal:2',
             'rating' => 'float',
+            'monthly_revenue' => 'decimal:2',
         ];
     }
 
@@ -48,11 +51,27 @@ class Staff extends Model
     }
 
     /**
+     * The department Category of this staff member.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    /**
      * Portfolio works performed by this staff member.
      */
     public function works(): HasMany
     {
         return $this->hasMany(StaffWork::class, 'staff_id')->latest();
+    }
+
+    /**
+     * Recorded shifts for this staff member.
+     */
+    public function shifts(): HasMany
+    {
+        return $this->hasMany(StaffShift::class, 'staff_id')->orderByDesc('shift_date');
     }
 
     /**
@@ -68,6 +87,14 @@ class Staff extends Model
         }
 
         return $initials ?: 'ST';
+    }
+
+    /**
+     * Get formatted monthly revenue string (e.g., "Rs. 485,000").
+     */
+    public function getFormattedMonthlyRevenueAttribute(): string
+    {
+        return 'Rs. '.number_format((float) $this->monthly_revenue, 0);
     }
 
     /**
@@ -119,4 +146,3 @@ class Staff extends Model
         };
     }
 }
-

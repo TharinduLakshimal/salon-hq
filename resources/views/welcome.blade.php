@@ -1,22 +1,13 @@
+@section('title', 'Welcome')
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome - {{ config('app.name', 'Salon HQ') }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@include('includes.head')
 <body class="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center p-4 antialiased">
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200/80 p-8 text-center">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center mx-auto mb-5 shadow-md shadow-indigo-500/30">
-            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="6" cy="6" r="3"></circle>
-                <circle cx="6" cy="18" r="3"></circle>
-                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-            </svg>
-        </div>
+        @include('includes.brand-logo', [
+            'wrapperClass' => 'w-14 h-14 rounded-2xl mx-auto mb-5 shadow-md shadow-indigo-500/30',
+            'iconClass' => 'w-7 h-7',
+        ])
 
         <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 mb-3">
             Welcome

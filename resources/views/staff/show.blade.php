@@ -9,19 +9,6 @@
 @endsection
 
 @section('content')
-    @php
-        $statusBadge = match($staff->availability_status) {
-            'in_session' => 'bg-blue-100 text-blue-700',
-            'on_break', 'off_duty' => 'bg-amber-100 text-amber-700',
-            default => 'bg-emerald-100 text-emerald-700',
-        };
-        $servesBadge = match($staff->serves_gender) {
-            'female' => 'bg-pink-100 text-pink-700 border-pink-200',
-            'male' => 'bg-sky-100 text-sky-700 border-sky-200',
-            default => 'bg-purple-100 text-purple-700 border-purple-200',
-        };
-    @endphp
-
     <div x-data="{ activeTab: 'works' }">
         <!-- Hero Profile Card -->
         <div class="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 mb-6 grid grid-cols-1 lg:grid-cols-3 gap-8 shadow-2xs">
@@ -33,13 +20,7 @@
                 <div>
                     <div class="flex flex-wrap items-center gap-2.5">
                         <h1 class="text-2xl font-bold text-slate-900">{{ $staff->user?->name }}</h1>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold {{ $statusBadge }}">
-                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                            {{ $staff->status_label }}
-                        </span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border {{ $servesBadge }}">
-                            {{ $staff->serves_icon }} {{ $staff->serves_label }}
-                        </span>
+                        @include('includes.staff-badges', ['staff' => $staff])
                     </div>
 
                     <div class="text-sm font-semibold text-indigo-600 mt-1 mb-3">{{ $staff->job_title }}</div>
@@ -95,11 +76,14 @@
             </div>
             <div class="bg-white border border-slate-200 rounded-2xl p-5">
                 <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Revenue</div>
-                <div class="text-2xl font-bold text-emerald-600 mt-1.5">{{ $staff->monthly_revenue }}</div>
+                <div class="text-2xl font-bold text-emerald-600 mt-1.5">{{ $staff->formatted_monthly_revenue }}</div>
             </div>
             <div class="bg-white border border-slate-200 rounded-2xl p-5">
-                <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Repeat Client Rate</div>
-                <div class="text-2xl font-bold text-indigo-600 mt-1.5">{{ $staff->repeat_clients }}</div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Commission / Retention</div>
+                <div class="text-2xl font-bold text-indigo-600 mt-1.5">
+                    {{ number_format($staff->commission_percentage, 1) }}%
+                    <span class="text-xs font-medium text-slate-500">({{ $staff->repeat_clients }} repeat)</span>
+                </div>
             </div>
         </div>
 
@@ -136,7 +120,7 @@
                             <div class="h-2 w-full" style="background: {{ $work->accent_color }}"></div>
                             <div class="p-5 flex-1 flex flex-col">
                                 <div class="flex items-center justify-between mb-2.5">
-                                    <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md">{{ $work->category }}</span>
+                                    <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md">{{ $work->category?->name ?? 'Salon Service' }}</span>
                                     <span class="text-xs font-bold text-amber-600">★ {{ number_format($work->rating, 1) }}</span>
                                 </div>
 
@@ -146,9 +130,9 @@
                                 <div class="mt-auto pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                                     <div>
                                         <div><strong class="text-slate-700">Client:</strong> {{ $work->client_name }}</div>
-                                        <div>{{ $work->performed_date }} • {{ $work->duration }}</div>
+                                        <div>{{ $work->performed_date }} • {{ $work->formatted_duration }} ({{ $work->duration_minutes }} mins)</div>
                                     </div>
-                                    <div class="text-sm font-bold text-indigo-600">{{ $work->price }}</div>
+                                    <div class="text-sm font-bold text-indigo-600">{{ $work->formatted_price }}</div>
                                 </div>
                             </div>
                         </div>

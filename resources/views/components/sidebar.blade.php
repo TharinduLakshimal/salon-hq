@@ -13,15 +13,10 @@
 >
     <!-- Brand Logo -->
     <div class="px-6 py-5 flex items-center gap-3.5 border-b border-white/10">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-600/35">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="6" cy="6" r="3"></circle>
-                <circle cx="6" cy="18" r="3"></circle>
-                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-            </svg>
-        </div>
+        @include('includes.brand-logo', [
+            'wrapperClass' => 'w-10 h-10 rounded-xl shrink-0 shadow-lg shadow-indigo-600/35',
+            'iconClass' => 'w-5 h-5',
+        ])
         <div class="flex flex-col">
             <span class="text-lg font-bold tracking-tight text-white leading-tight">Salon HQ</span>
             <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Admin Workspace</span>
