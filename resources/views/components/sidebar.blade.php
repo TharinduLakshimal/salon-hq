@@ -51,7 +51,10 @@
             <span>Dashboard</span>
         </a>
 
-        <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+        <a href="{{ route('appointments.index') }}"
+           wire:navigate
+           @click="sidebarOpen = false"
+           class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('appointments.*') ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
             <svg class="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -59,7 +62,7 @@
                 <line x1="3" y1="10" x2="21" y2="10"></line>
             </svg>
             <span>Appointments</span>
-            <span class="ml-auto bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2 py-0.5 rounded-full">18</span>
+            <span class="ml-auto {{ request()->routeIs('appointments.*') ? 'bg-white/20 text-white' : 'bg-indigo-500/20 text-indigo-300' }} text-xs font-semibold px-2 py-0.5 rounded-full">8</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">

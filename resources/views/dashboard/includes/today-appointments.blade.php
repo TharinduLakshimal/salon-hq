@@ -2,7 +2,7 @@
 <div class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
     <div class="px-4 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-2">
         <h2 class="text-base font-bold text-slate-900">Today's Appointments</h2>
-        <a href="#" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 whitespace-nowrap">View All Bookings &rarr;</a>
+        <a href="{{ route('appointments.index') }}" wire:navigate class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 whitespace-nowrap">View All Bookings &rarr;</a>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full min-w-[640px] text-left border-collapse">

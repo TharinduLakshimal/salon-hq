@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StaffController;
 use App\Models\Staff;
@@ -20,6 +21,8 @@ Route::middleware('auth')->group(function () {
 
         return view('dashboard', compact('staffMembers'));
     })->name('dashboard');
+
+    Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
 
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
