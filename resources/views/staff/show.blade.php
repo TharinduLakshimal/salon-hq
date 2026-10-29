@@ -9,19 +9,6 @@
 @endsection
 
 @section('content')
-    @php
-        $statusBadge = match($staff->availability_status) {
-            'in_session' => 'bg-blue-100 text-blue-700',
-            'on_break', 'off_duty' => 'bg-amber-100 text-amber-700',
-            default => 'bg-emerald-100 text-emerald-700',
-        };
-        $servesBadge = match($staff->serves_gender) {
-            'female' => 'bg-pink-100 text-pink-700 border-pink-200',
-            'male' => 'bg-sky-100 text-sky-700 border-sky-200',
-            default => 'bg-purple-100 text-purple-700 border-purple-200',
-        };
-    @endphp
-
     <div x-data="{ activeTab: 'works' }">
         <!-- Hero Profile Card -->
         <div class="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 mb-6 grid grid-cols-1 lg:grid-cols-3 gap-8 shadow-2xs">
@@ -33,13 +20,7 @@
                 <div>
                     <div class="flex flex-wrap items-center gap-2.5">
                         <h1 class="text-2xl font-bold text-slate-900">{{ $staff->user?->name }}</h1>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold {{ $statusBadge }}">
-                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                            {{ $staff->status_label }}
-                        </span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border {{ $servesBadge }}">
-                            {{ $staff->serves_icon }} {{ $staff->serves_label }}
-                        </span>
+                        @include('includes.staff-badges', ['staff' => $staff])
                     </div>
 
                     <div class="text-sm font-semibold text-indigo-600 mt-1 mb-3">{{ $staff->job_title }}</div>

@@ -96,16 +96,6 @@
             @foreach ($staffMembers as $member)
                 @php
                     $skills = $member->specialties ?? [];
-                    $statusBadge = match($member->availability_status) {
-                        'in_session' => 'bg-blue-100 text-blue-700',
-                        'on_break', 'off_duty' => 'bg-amber-100 text-amber-700',
-                        default => 'bg-emerald-100 text-emerald-700',
-                    };
-                    $servesBadge = match($member->serves_gender) {
-                        'female' => 'bg-pink-100 text-pink-700 border-pink-200',
-                        'male' => 'bg-sky-100 text-sky-700 border-sky-200',
-                        default => 'bg-purple-100 text-purple-700 border-purple-200',
-                    };
                 @endphp
                 <a
                     href="{{ route('staff.show', $member->id) }}"
@@ -121,10 +111,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2 mb-1">
                                 <h3 class="text-base font-bold text-slate-900 truncate">{{ $member->user?->name }}</h3>
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 {{ $statusBadge }}">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                    {{ $member->status_label }}
-                                </span>
+                                @include('includes.staff-badges', ['staff' => $member, 'type' => 'status'])
                             </div>
 
                             <div class="text-xs font-semibold text-indigo-600 mb-2">{{ $member->job_title }}</div>
@@ -136,9 +123,7 @@
                                     <span>({{ $member->reviews_count }})</span>
                                 </div>
 
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold border {{ $servesBadge }}">
-                                    {{ $member->serves_icon }} {{ $member->serves_label }}
-                                </span>
+                                @include('includes.staff-badges', ['staff' => $member, 'type' => 'gender'])
                             </div>
                         </div>
                     </div>

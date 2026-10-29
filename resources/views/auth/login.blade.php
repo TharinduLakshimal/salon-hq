@@ -5,15 +5,7 @@
 <body class="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center p-4 antialiased">
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200/80 p-8">
         <div class="text-center mb-7">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center mx-auto mb-3 shadow-md shadow-indigo-500/30">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="6" cy="6" r="3"></circle>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-                    <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-                    <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-                </svg>
-            </div>
+            @include('includes.brand-logo')
             <h1 class="text-2xl font-bold text-slate-900">Salon HQ</h1>
             <p class="text-sm text-slate-500 mt-1">Sign in to your admin account</p>
         </div>
