@@ -1,11 +1,7 @@
+@section('title', 'Welcome')
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome - {{ config('app.name', 'Salon HQ') }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@include('includes.head')
 <body class="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center p-4 antialiased">
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200/80 p-8 text-center">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center mx-auto mb-5 shadow-md shadow-indigo-500/30">
