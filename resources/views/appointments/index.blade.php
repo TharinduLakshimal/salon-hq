@@ -30,6 +30,7 @@
         window.createAppointmentsBoard = function (config) {
             const servicesList = Array.isArray(config.services) ? config.services : [];
             const categoriesList = Array.isArray(config.categories) ? config.categories : [];
+            const preselectedClient = config.preselectedClient || null;
             const firstService = servicesList[0] || {
                 id: null,
                 name: '',
@@ -49,6 +50,12 @@
                 category: 'Hair Stylists',
                 serves_gender: 'both',
             };
+            const initialGender =
+                preselectedClient && (preselectedClient.gender === 'male' || preselectedClient.gender === 'female')
+                    ? preselectedClient.gender
+                    : firstService.target_gender === 'gents'
+                        ? 'male'
+                        : 'female';
 
             return {
                 appointments: config.appointments,
@@ -103,10 +110,10 @@
                 ],
 
                 form: {
-                    client_id: null,
-                    client_name: '',
-                    client_phone: '',
-                    client_gender: firstService.target_gender === 'gents' ? 'male' : 'female',
+                    client_id: preselectedClient ? preselectedClient.id : null,
+                    client_name: preselectedClient ? preselectedClient.name : '',
+                    client_phone: preselectedClient ? (preselectedClient.phone_number || '') : '',
+                    client_gender: initialGender,
                     category_id: '',
                     service_name: firstService.name,
                     category: firstCategory ? firstCategory.name : firstStylist.category,
@@ -564,6 +571,7 @@
             today: @js($today),
             tomorrow: @js($tomorrow),
             openModalOnLoad: @js($openModalOnLoad),
+            preselectedClient: @js($preselectedClient),
             csrfToken: @js(csrf_token()),
             routes: {
                 store: @js(route('appointments.store')),

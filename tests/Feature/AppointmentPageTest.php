@@ -359,4 +359,44 @@ class AppointmentPageTest extends TestCase
         $response->assertSee('service in filteredServices', false);
         $response->assertDontSee('Bridal Hair & HD Airbrush Makeup');
     }
+
+    public function test_client_id_query_parameter_preselects_registered_client_for_booking_modal(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $client = User::factory()->create([
+            'name' => 'Dinithi Rajapaksa',
+            'phone_number' => '077 554 3322',
+            'gender' => 'female',
+            'role' => 'client',
+        ]);
+
+        $response = $this->actingAs($owner)->get(
+            route('appointments.index', ['new' => 1, 'client_id' => $client->id])
+        );
+
+        $response->assertOk();
+        $response->assertViewHas('openModalOnLoad', true);
+        $response->assertViewHas('preselectedClient', [
+            'id' => $client->id,
+            'name' => 'Dinithi Rajapaksa',
+            'phone_number' => '0775543322',
+            'gender' => 'female',
+        ]);
+        $response->assertSee('Dinithi Rajapaksa');
+        $response->assertSee('0775543322');
+
+        $nonClientResponse = $this->actingAs($owner)->get(
+            route('appointments.index', ['client_id' => $owner->id])
+        );
+
+        $nonClientResponse->assertOk();
+        $nonClientResponse->assertViewHas('openModalOnLoad', false);
+        $nonClientResponse->assertViewHas('preselectedClient', null);
+
+        $clientsPageResponse = $this->actingAs($owner)->get(route('clients.index'));
+
+        $clientsPageResponse->assertOk();
+        $clientsPageResponse->assertSee('bookingUrlForClient(client)', false);
+        $clientsPageResponse->assertSee('bookingUrlForClient(selectedClient)', false);
+    }
 }

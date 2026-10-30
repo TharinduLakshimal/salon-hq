@@ -275,7 +275,7 @@
                     Edit Client Details
                 </button>
                 <a
-                    href="{{ route('appointments.index', ['new' => 1]) }}"
+                    :href="bookingUrlForClient(selectedClient)"
                     wire:navigate
                     class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white shadow-sm shadow-indigo-600/20"
                 >

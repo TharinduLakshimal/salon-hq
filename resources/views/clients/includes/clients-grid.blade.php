@@ -108,7 +108,7 @@
                             View Profile
                         </button>
                         <a
-                            href="{{ route('appointments.index', ['new' => 1]) }}"
+                            :href="bookingUrlForClient(client)"
                             wire:navigate
                             class="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white text-center transition"
                         >

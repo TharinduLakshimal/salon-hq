@@ -46,7 +46,25 @@ class AppointmentController extends Controller
         $services = Service::select('id', 'name', 'price', 'duration_minutes', 'target_gender', 'category_id', 'is_package')->get();
         $categories = Category::select('id', 'name')->orderBy('id')->get();
 
-        $openModalOnLoad = $request->boolean('new');
+        $preselectedClient = null;
+        if ($request->filled('client_id')) {
+            $matchedClient = User::query()
+                ->where('role', 'client')
+                ->find($request->integer('client_id'), ['id', 'name', 'phone_number', 'gender']);
+
+            if ($matchedClient) {
+                $preselectedClient = [
+                    'id' => $matchedClient->id,
+                    'name' => $matchedClient->name,
+                    'phone_number' => $matchedClient->phone_number ?? '',
+                    'gender' => in_array($matchedClient->gender, ['female', 'male'], true)
+                        ? $matchedClient->gender
+                        : 'female',
+                ];
+            }
+        }
+
+        $openModalOnLoad = $request->boolean('new') || $preselectedClient !== null;
 
         return view('appointments.index', compact(
             'staffMembers',
@@ -56,7 +74,8 @@ class AppointmentController extends Controller
             'categories',
             'today',
             'tomorrow',
-            'openModalOnLoad'
+            'openModalOnLoad',
+            'preselectedClient'
         ));
     }
 

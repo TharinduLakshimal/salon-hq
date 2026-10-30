@@ -120,7 +120,7 @@
                                     Edit
                                 </button>
                                 <a
-                                    href="{{ route('appointments.index', ['new' => 1]) }}"
+                                    :href="bookingUrlForClient(client)"
                                     wire:navigate
                                     class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition"
                                 >

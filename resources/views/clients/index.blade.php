@@ -33,6 +33,7 @@
                 stylists: config.stylists,
                 storeClientUrl: config.storeUrl,
                 baseClientsUrl: config.baseUrl,
+                appointmentsUrl: config.appointmentsUrl,
 
                 tierFilter: 'all',
                 genderFilter: 'all',
@@ -261,6 +262,14 @@
                     });
                     this.showFormModal = true;
                 },
+
+                bookingUrlForClient(client) {
+                    if (!client || !client.id) {
+                        return `${this.appointmentsUrl}?new=1`;
+                    }
+
+                    return `${this.appointmentsUrl}?new=1&client_id=${encodeURIComponent(client.id)}`;
+                },
             };
         };
     </script>
@@ -280,6 +289,7 @@
             ]),
             storeUrl: @js(route('clients.store')),
             baseUrl: @js(url('/clients')),
+            appointmentsUrl: @js(route('appointments.index')),
         })"
         @open-client-modal.window="openCreateModal()"
         @keydown.escape.window="showFormModal = false; selectedClient = null; clientToDelete = null"
