@@ -212,6 +212,15 @@
                     return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 },
 
+                formatCustomDateLabel(dateStr) {
+                    const parsed = new Date(dateStr + 'T00:00:00');
+                    if (Number.isNaN(parsed.getTime())) {
+                        return dateStr;
+                    }
+
+                    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                },
+
                 statusLabel(status) {
                     const labels = {
                         in_progress: 'In Progress',
@@ -250,7 +259,7 @@
                     const defaultService = this.services[0] || firstService;
                     const defaultStylist = this.stylists[0] || firstStylist;
 
-                    this.form = {
+                    Object.assign(this.form, {
                         client_name: '',
                         client_phone: '',
                         client_gender: defaultService.gender === 'male' ? 'male' : 'female',
@@ -263,9 +272,34 @@
                         date: this.dateFilter !== 'all' ? this.dateFilter : this.todayDate,
                         start_time: preferredSlot || '10:00 AM',
                         notes: '',
-                    };
+                    });
 
                     this.showBookingModal = true;
+                },
+
+                selectClientGender(gender) {
+                    this.form.client_gender = gender;
+
+                    const currentService = this.services.find((s) => s.name === this.form.service_name);
+                    if (currentService && currentService.gender !== 'both' && currentService.gender !== gender) {
+                        const compatibleService = this.services.find(
+                            (s) => s.gender === gender || s.gender === 'both'
+                        );
+
+                        if (compatibleService) {
+                            this.form.service_name = compatibleService.name;
+                            this.form.category = compatibleService.category;
+                            this.form.duration_minutes = compatibleService.duration;
+                            this.form.price = compatibleService.price;
+
+                            const matchingStylist = this.stylists.find(
+                                (st) => st.category === compatibleService.category
+                            );
+                            if (matchingStylist) {
+                                this.form.stylist_name = matchingStylist.name;
+                            }
+                        }
+                    }
                 },
 
                 onServiceChange() {
