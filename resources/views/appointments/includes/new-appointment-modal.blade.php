@@ -161,20 +161,48 @@
                     </div>
                 </div>
 
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Select Salon Service *</label>
-                    <select
-                        x-model="form.service_name"
-                        @change="onServiceChange()"
-                        required
-                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    >
-                        @foreach ($serviceCatalog as $service)
-                            <option value="{{ $service['name'] }}">
-                                {{ $service['name'] }} — Rs. {{ number_format($service['price']) }} ({{ $service['duration'] }} mins)
+                <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-1">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Department Category</label>
+                        <select
+                            x-model="form.category_id"
+                            @change="onCategoryFilterChange()"
+                            class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
+                        >
+                            <option value="">All Categories</option>
+                            @foreach ($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Select Salon Service *</label>
+                        <select
+                            x-model="form.service_name"
+                            @change="onServiceChange()"
+                            :disabled="filteredServices.length === 0"
+                            required
+                            class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                            <option value="" x-show="filteredServices.length === 0" disabled>
+                                No services match selected gender &amp; category
                             </option>
-                        @endforeach
-                    </select>
+                            <template x-for="service in filteredServices" :key="service.id">
+                                <option
+                                    :value="service.name"
+                                    :selected="form.service_name === service.name"
+                                    x-text="service.name + ' - Rs. ' + formatCurrency(service.price) + (service.is_package ? ' (Package)' : '')"
+                                ></option>
+                            </template>
+                        </select>
+                        <p
+                            x-show="formErrors.service_name"
+                            class="mt-1 text-xs text-red-600 font-medium"
+                            style="display: none;"
+                            x-text="formErrors.service_name ? formErrors.service_name[0] : ''"
+                        ></p>
+                    </div>
                 </div>
 
                 <div>
@@ -283,7 +311,7 @@
                 </button>
                 <button
                     type="submit"
-                    :disabled="isSubmitting || stylists.length === 0"
+                    :disabled="isSubmitting || stylists.length === 0 || !form.service_name"
                     class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-xs font-semibold text-white shadow-sm shadow-indigo-600/20 cursor-pointer"
                 >
                     <span x-text="isSubmitting ? 'Saving Booking...' : 'Confirm Appointment'">Confirm Appointment</span>

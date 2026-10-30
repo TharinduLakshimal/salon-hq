@@ -28,24 +28,32 @@
 @section('content')
     <script>
         window.createAppointmentsBoard = function (config) {
-            const firstService = config.services[0] || {
-                name: 'Butterfly Layer Cut & Blowout',
-                category: 'Hair Stylists',
-                duration: 60,
-                price: 4500,
-                gender: 'both',
+            const servicesList = Array.isArray(config.services) ? config.services : [];
+            const categoriesList = Array.isArray(config.categories) ? config.categories : [];
+            const firstService = servicesList[0] || {
+                id: null,
+                name: '',
+                price: 0,
+                duration_minutes: 30,
+                target_gender: 'both',
+                category_id: null,
+                is_package: false,
             };
+            const firstCategory = categoriesList.find((cat) => Number(cat.id) === Number(firstService.category_id));
             const firstStylist = config.stylists[0] || {
                 id: null,
                 name: 'Salon Stylist',
                 initials: 'SS',
                 gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                category_id: null,
                 category: 'Hair Stylists',
+                serves_gender: 'both',
             };
 
             return {
                 appointments: config.appointments,
-                services: config.services,
+                services: servicesList,
+                categories: categoriesList,
                 stylists: config.stylists,
                 todayDate: config.today,
                 tomorrowDate: config.tomorrow,
@@ -98,17 +106,52 @@
                     client_id: null,
                     client_name: '',
                     client_phone: '',
-                    client_gender: firstService.gender === 'male' ? 'male' : 'female',
+                    client_gender: firstService.target_gender === 'gents' ? 'male' : 'female',
+                    category_id: '',
                     service_name: firstService.name,
-                    category: firstService.category,
-                    duration_minutes: firstService.duration,
-                    price: firstService.price,
+                    category: firstCategory ? firstCategory.name : firstStylist.category,
+                    duration_minutes: Number(firstService.duration_minutes || 30),
+                    price: Number(firstService.price || 0),
                     staff_id: firstStylist.id,
                     stylist_name: firstStylist.name,
                     booking_type: 'Walk-In',
                     date: config.today,
                     start_time: '10:00 AM',
                     notes: '',
+                },
+
+                get filteredServices() {
+                    const expectedTarget = this.form.client_gender === 'male' ? 'gents' : 'ladies';
+
+                    return this.services.filter((service) => {
+                        const genderMatches =
+                            service.target_gender === expectedTarget ||
+                            service.target_gender === 'both';
+
+                        if (!genderMatches) {
+                            return false;
+                        }
+
+                        if (
+                            this.form.category_id !== '' &&
+                            this.form.category_id !== null &&
+                            this.form.category_id !== 'all' &&
+                            Number(service.category_id) !== Number(this.form.category_id)
+                        ) {
+                            return false;
+                        }
+
+                        return true;
+                    });
+                },
+
+                init() {
+                    if (this.filteredServices.length > 0) {
+                        const initialService =
+                            this.filteredServices.find((s) => s.name === this.form.service_name) ||
+                            this.filteredServices[0];
+                        this.applyServiceSelection(initialService);
+                    }
                 },
 
                 get baseFilteredWithoutStatus() {
@@ -297,9 +340,44 @@
                     }
                 },
 
+                categoryNameById(categoryId) {
+                    const match = this.categories.find((cat) => Number(cat.id) === Number(categoryId));
+
+                    return match ? match.name : 'Salon Service';
+                },
+
+                applyServiceSelection(service) {
+                    if (!service) {
+                        this.form.service_name = '';
+                        this.form.category = 'Salon Service';
+                        this.form.duration_minutes = 30;
+                        this.form.price = 0;
+                        return;
+                    }
+
+                    this.form.service_name = service.name;
+                    this.form.price = Number(service.price);
+                    this.form.duration_minutes = Number(service.duration_minutes);
+                    this.form.category = this.categoryNameById(service.category_id);
+
+                    const matchingStylist =
+                        this.stylists.find(
+                            (st) =>
+                                Number(st.category_id) === Number(service.category_id) &&
+                                (st.serves_gender === 'both' || st.serves_gender === this.form.client_gender)
+                        ) ||
+                        this.stylists.find((st) => Number(st.category_id) === Number(service.category_id));
+
+                    if (matchingStylist) {
+                        this.form.staff_id = matchingStylist.id;
+                        this.form.stylist_name = matchingStylist.name;
+                    }
+                },
+
                 openNewBookingModal(preferredSlot = null) {
                     const defaultService = this.services[0] || firstService;
                     const defaultStylist = this.stylists[0] || firstStylist;
+                    const defaultGender = defaultService.target_gender === 'gents' ? 'male' : 'female';
 
                     this.formErrors = {};
                     this.formErrorBanner = '';
@@ -310,11 +388,12 @@
                         client_id: null,
                         client_name: '',
                         client_phone: '',
-                        client_gender: defaultService.gender === 'male' ? 'male' : 'female',
+                        client_gender: defaultGender,
+                        category_id: '',
                         service_name: defaultService.name,
-                        category: defaultService.category,
-                        duration_minutes: defaultService.duration,
-                        price: defaultService.price,
+                        category: this.categoryNameById(defaultService.category_id),
+                        duration_minutes: Number(defaultService.duration_minutes || 30),
+                        price: Number(defaultService.price || 0),
                         staff_id: defaultStylist.id,
                         stylist_name: defaultStylist.name,
                         booking_type: 'Walk-In',
@@ -323,6 +402,7 @@
                         notes: '',
                     });
 
+                    this.applyServiceSelection(this.filteredServices[0] || null);
                     this.showBookingModal = true;
                 },
 
@@ -389,48 +469,29 @@
                 selectClientGender(gender) {
                     this.form.client_gender = gender;
 
-                    const currentService = this.services.find((s) => s.name === this.form.service_name);
-                    if (currentService && currentService.gender !== 'both' && currentService.gender !== gender) {
-                        const compatibleService = this.services.find(
-                            (s) => s.gender === gender || s.gender === 'both'
-                        );
-
-                        if (compatibleService) {
-                            this.form.service_name = compatibleService.name;
-                            this.form.category = compatibleService.category;
-                            this.form.duration_minutes = compatibleService.duration;
-                            this.form.price = compatibleService.price;
-
-                            const matchingStylist = this.stylists.find(
-                                (st) => st.category === compatibleService.category
-                            );
-                            if (matchingStylist) {
-                                this.form.staff_id = matchingStylist.id;
-                                this.form.stylist_name = matchingStylist.name;
-                            }
-                        }
+                    if (this.filteredServices.length === 0 && this.form.category_id !== '') {
+                        this.form.category_id = '';
                     }
+
+                    const currentMatch = this.filteredServices.find((s) => s.name === this.form.service_name);
+                    this.applyServiceSelection(currentMatch || this.filteredServices[0] || null);
+                },
+
+                onCategoryFilterChange() {
+                    const currentMatch = this.filteredServices.find((s) => s.name === this.form.service_name);
+                    this.applyServiceSelection(currentMatch || this.filteredServices[0] || null);
                 },
 
                 onServiceChange() {
-                    const found = this.services.find((s) => s.name === this.form.service_name);
+                    const found =
+                        this.filteredServices.find((s) => s.name === this.form.service_name) ||
+                        this.services.find((s) => s.name === this.form.service_name);
+
                     if (!found) {
                         return;
                     }
 
-                    this.form.category = found.category;
-                    this.form.duration_minutes = found.duration;
-                    this.form.price = found.price;
-
-                    if (this.form.client_id === null && (found.gender === 'female' || found.gender === 'male')) {
-                        this.form.client_gender = found.gender;
-                    }
-
-                    const matchingStylist = this.stylists.find((st) => st.category === found.category);
-                    if (matchingStylist) {
-                        this.form.staff_id = matchingStylist.id;
-                        this.form.stylist_name = matchingStylist.name;
-                    }
+                    this.applyServiceSelection(found);
                 },
 
                 onStylistChange() {
@@ -497,7 +558,8 @@
     <div
         x-data="window.createAppointmentsBoard({
             appointments: @js($appointments),
-            services: @js($serviceCatalog),
+            services: @js($services),
+            categories: @js($categories),
             stylists: @js($stylistsList),
             today: @js($today),
             tomorrow: @js($tomorrow),

@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Appointment;
 use App\Models\Category;
+use App\Models\Service;
 use App\Models\Staff;
 use App\Models\User;
 use Database\Seeders\AppointmentSeeder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -314,5 +316,47 @@ class AppointmentPageTest extends TestCase
                 'found' => false,
                 'user' => null,
             ]);
+    }
+
+    public function test_appointments_index_injects_real_services_and_excludes_legacy_catalog(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $esthetics = Category::create([
+            'name' => 'Estheticians & Nails',
+            'slug' => 'estheticians-nails',
+        ]);
+        $barbers = Category::create([
+            'name' => 'Barbers',
+            'slug' => 'barbers',
+        ]);
+
+        $ladiesFacial = Service::factory()->for($esthetics)->create([
+            'name' => 'Gold Facial',
+            'target_gender' => 'ladies',
+            'price' => 4500.00,
+            'duration_minutes' => 60,
+            'is_package' => false,
+        ]);
+
+        $gentsPackage = Service::factory()->for($barbers)->package()->create([
+            'name' => 'Haircut + Beard cut',
+            'target_gender' => 'gents',
+            'price' => 1000.00,
+            'duration_minutes' => 45,
+        ]);
+
+        $response = $this->actingAs($owner)->get(route('appointments.index'));
+
+        $response->assertOk();
+        $response->assertViewMissing('serviceCatalog');
+        $response->assertViewHas('services', function (Collection $services) use ($ladiesFacial, $gentsPackage): bool {
+            return $services->count() === 2
+                && $services->contains('id', $ladiesFacial->id)
+                && $services->contains('id', $gentsPackage->id);
+        });
+        $response->assertSee('Gold Facial');
+        $response->assertSee('Haircut + Beard cut');
+        $response->assertSee('service in filteredServices', false);
+        $response->assertDontSee('Bridal Hair & HD Airbrush Makeup');
     }
 }

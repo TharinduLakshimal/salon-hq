@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Category;
+use App\Models\Service;
 use App\Models\Staff;
 use App\Models\User;
 use Carbon\Carbon;
@@ -25,6 +26,7 @@ class AppointmentController extends Controller
             'name' => $member->user?->name ?? 'Salon Stylist',
             'initials' => $member->initials,
             'gradient' => $member->avatar_gradient ?: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            'category_id' => $member->category_id,
             'category' => $member->category?->name ?? 'Hair Stylists',
             'serves_gender' => $member->serves_gender ?? 'both',
         ])->values()->all();
@@ -41,16 +43,8 @@ class AppointmentController extends Controller
             ->values()
             ->all();
 
-        $serviceCatalog = [
-            ['name' => 'Bridal Hair & HD Airbrush Makeup', 'category' => 'Bridal & Makeup', 'duration' => 210, 'price' => 18500, 'gender' => 'female'],
-            ['name' => 'Party Glam Makeup & Soft Curls', 'category' => 'Bridal & Makeup', 'duration' => 90, 'price' => 12500, 'gender' => 'female'],
-            ['name' => 'Executive Skin Fade & Beard Styling', 'category' => 'Barbers', 'duration' => 45, 'price' => 3200, 'gender' => 'male'],
-            ['name' => 'Groom Luxury Hair & Detox Facial Package', 'category' => 'Barbers', 'duration' => 120, 'price' => 14500, 'gender' => 'male'],
-            ['name' => 'Brazilian Keratin Hair Treatment', 'category' => 'Hair Stylists', 'duration' => 165, 'price' => 14000, 'gender' => 'both'],
-            ['name' => 'Butterfly Layer Cut & Blowout', 'category' => 'Hair Stylists', 'duration' => 60, 'price' => 4500, 'gender' => 'both'],
-            ['name' => '7-Step Platinum HydraFacial', 'category' => 'Estheticians & Nails', 'duration' => 75, 'price' => 7500, 'gender' => 'both'],
-            ['name' => 'BIAB Gel Nail Extensions & Chrome Art', 'category' => 'Estheticians & Nails', 'duration' => 90, 'price' => 5300, 'gender' => 'female'],
-        ];
+        $services = Service::select('id', 'name', 'price', 'duration_minutes', 'target_gender', 'category_id', 'is_package')->get();
+        $categories = Category::select('id', 'name')->orderBy('id')->get();
 
         $openModalOnLoad = $request->boolean('new');
 
@@ -58,7 +52,8 @@ class AppointmentController extends Controller
             'staffMembers',
             'stylistsList',
             'appointments',
-            'serviceCatalog',
+            'services',
+            'categories',
             'today',
             'tomorrow',
             'openModalOnLoad'
@@ -81,8 +76,9 @@ class AppointmentController extends Controller
             'client_gender' => ['required', Rule::in(['female', 'male', 'other'])],
             'staff_id' => ['required', 'integer', Rule::exists('staff', 'id')],
             'service_name' => ['required', 'string', 'max:150'],
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')],
             'category' => ['nullable', 'string', 'max:80'],
-            'duration_minutes' => ['required', 'integer', 'min:15', 'max:600'],
+            'duration_minutes' => ['required', 'integer', 'min:5', 'max:600'],
             'price' => ['required', 'numeric', 'min:0'],
             'booking_type' => ['required', Rule::in([
                 'walk_in',
@@ -103,9 +99,11 @@ class AppointmentController extends Controller
             ? User::find($validated['client_id'])
             : null;
 
-        $categoryId = ! empty($validated['category'])
-            ? Category::where('name', $validated['category'])->value('id')
-            : null;
+        $categoryId = ! empty($validated['category_id'])
+            ? (int) $validated['category_id']
+            : (! empty($validated['category'])
+                ? Category::where('name', $validated['category'])->value('id')
+                : null);
 
         $normalizedBookingType = match ($validated['booking_type']) {
             'Online Booking', 'online_booking' => 'online_booking',
