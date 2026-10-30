@@ -65,7 +65,10 @@
             <span class="ml-auto {{ request()->routeIs('appointments.*') ? 'bg-white/20 text-white' : 'bg-indigo-500/20 text-indigo-300' }} text-xs font-semibold px-2 py-0.5 rounded-full">8</span>
         </a>
 
-        <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+        <a href="{{ route('clients.index') }}"
+           wire:navigate
+           @click="sidebarOpen = false"
+           class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('clients.*') ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
             <svg class="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\StaffController;
 use App\Models\Staff;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,7 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+    Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
 
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
