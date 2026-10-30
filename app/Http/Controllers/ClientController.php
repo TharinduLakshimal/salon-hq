@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Staff;
 use App\Models\StaffWork;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -196,5 +197,49 @@ class ClientController extends Controller
         return redirect()
             ->route('clients.index')
             ->with('success', "{$clientName} has been removed from the client database.");
+    }
+
+    /**
+     * Look up an existing User by normalized Sri Lankan phone number for appointment auto-complete.
+     */
+    public function searchByPhone(Request $request): JsonResponse
+    {
+        $normalized = preg_replace('/[\s\-()]+/', '', (string) $request->query('phone', '')) ?? '';
+
+        if (strlen($normalized) < 9) {
+            return response()->json([
+                'found' => false,
+                'user' => null,
+            ], 200);
+        }
+
+        $candidates = [$normalized];
+        if (str_starts_with($normalized, '0') && strlen($normalized) === 10) {
+            $candidates[] = '+94'.substr($normalized, 1);
+        } elseif (str_starts_with($normalized, '+94') && strlen($normalized) === 12) {
+            $candidates[] = '0'.substr($normalized, 3);
+        }
+
+        $user = User::query()
+            ->whereIn('phone_number', $candidates)
+            ->orderByRaw("CASE WHEN role = 'client' THEN 0 ELSE 1 END")
+            ->first(['id', 'name', 'phone_number', 'gender']);
+
+        if (! $user) {
+            return response()->json([
+                'found' => false,
+                'user' => null,
+            ], 200);
+        }
+
+        return response()->json([
+            'found' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'phone_number' => $user->phone_number,
+                'gender' => $user->gender,
+            ],
+        ], 200);
     }
 }

@@ -2,19 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
+use App\Models\Category;
 use App\Models\Staff;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
     /**
-     * Display the salon appointments management UI.
+     * Display the salon appointments management UI backed by real MySQL records.
      */
     public function index(Request $request): View
     {
         $staffMembers = Staff::with(['user', 'category'])->orderBy('id')->get();
         $stylistsList = $staffMembers->map(fn (Staff $member): array => [
+            'id' => $member->id,
             'name' => $member->user?->name ?? 'Salon Stylist',
             'initials' => $member->initials,
             'gradient' => $member->avatar_gradient ?: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
@@ -22,198 +29,17 @@ class AppointmentController extends Controller
             'serves_gender' => $member->serves_gender ?? 'both',
         ])->values()->all();
 
-        if ($stylistsList === []) {
-            $stylistsList = [
-                [
-                    'name' => 'Kavindi Senanayake',
-                    'initials' => 'KS',
-                    'gradient' => 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    'category' => 'Bridal & Makeup',
-                    'serves_gender' => 'female',
-                ],
-                [
-                    'name' => 'Roshan Mendis',
-                    'initials' => 'RM',
-                    'gradient' => 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-                    'category' => 'Barbers',
-                    'serves_gender' => 'male',
-                ],
-            ];
-        }
-
         $today = now()->toDateString();
         $tomorrow = now()->addDay()->toDateString();
 
-        $appointments = [
-            [
-                'id' => 1,
-                'booking_code' => 'BK-2026-0101',
-                'client_name' => 'Nethmi Perera',
-                'client_phone' => '077 412 8930',
-                'client_gender' => 'female',
-                'booking_type' => 'Online Booking',
-                'service_name' => 'Bridal Hair & HD Airbrush Makeup',
-                'category' => 'Bridal & Makeup',
-                'duration_minutes' => 210,
-                'stylist_name' => 'Kavindi Senanayake',
-                'stylist_initials' => 'KS',
-                'stylist_gradient' => 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                'date' => $today,
-                'start_time' => '09:30 AM',
-                'end_time' => '01:00 PM',
-                'hour_key' => '09:00 AM',
-                'price' => 18500,
-                'status' => 'in_progress',
-                'notes' => 'Traditional Kandyan jasmine hair styling requested.',
-            ],
-            [
-                'id' => 2,
-                'booking_code' => 'BK-2026-0102',
-                'client_name' => 'Dilshan Silva',
-                'client_phone' => '071 845 2219',
-                'client_gender' => 'male',
-                'booking_type' => 'Walk-In',
-                'service_name' => 'Executive Skin Fade & Beard Styling',
-                'category' => 'Barbers',
-                'duration_minutes' => 45,
-                'stylist_name' => 'Roshan Mendis',
-                'stylist_initials' => 'RM',
-                'stylist_gradient' => 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-                'date' => $today,
-                'start_time' => '10:15 AM',
-                'end_time' => '11:00 AM',
-                'hour_key' => '10:00 AM',
-                'price' => 3200,
-                'status' => 'in_progress',
-                'notes' => 'Hot towel shave finish.',
-            ],
-            [
-                'id' => 3,
-                'booking_code' => 'BK-2026-0103',
-                'client_name' => 'Sachini Fernando',
-                'client_phone' => '076 992 1044',
-                'client_gender' => 'female',
-                'booking_type' => 'Phone Desk',
-                'service_name' => 'Brazilian Keratin Hair Treatment',
-                'category' => 'Hair Stylists',
-                'duration_minutes' => 165,
-                'stylist_name' => 'Amaya Jayawardena',
-                'stylist_initials' => 'AJ',
-                'stylist_gradient' => 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                'date' => $today,
-                'start_time' => '11:00 AM',
-                'end_time' => '01:45 PM',
-                'hour_key' => '11:00 AM',
-                'price' => 14000,
-                'status' => 'confirmed',
-                'notes' => 'Sulfate-free aftercare kit inquiry.',
-            ],
-            [
-                'id' => 4,
-                'booking_code' => 'BK-2026-0104',
-                'client_name' => 'Tharindu Jayasinghe',
-                'client_phone' => '077 203 5511',
-                'client_gender' => 'male',
-                'booking_type' => 'Online Booking',
-                'service_name' => '7-Step Platinum HydraFacial',
-                'category' => 'Estheticians & Nails',
-                'duration_minutes' => 75,
-                'stylist_name' => 'Nadeesha Karunaratne',
-                'stylist_initials' => 'NK',
-                'stylist_gradient' => 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                'date' => $today,
-                'start_time' => '01:30 PM',
-                'end_time' => '02:45 PM',
-                'hour_key' => '01:00 PM',
-                'price' => 7500,
-                'status' => 'confirmed',
-                'notes' => 'Sensitive skin — mild enzyme peel only.',
-            ],
-            [
-                'id' => 5,
-                'booking_code' => 'BK-2026-0105',
-                'client_name' => 'Hashini Wijeratne',
-                'client_phone' => '070 331 6780',
-                'client_gender' => 'female',
-                'booking_type' => 'Online Booking',
-                'service_name' => 'BIAB Gel Nail Extensions & Chrome Art',
-                'category' => 'Estheticians & Nails',
-                'duration_minutes' => 90,
-                'stylist_name' => 'Tashya Rodrigo',
-                'stylist_initials' => 'TR',
-                'stylist_gradient' => 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                'date' => $today,
-                'start_time' => '03:00 PM',
-                'end_time' => '04:30 PM',
-                'hour_key' => '03:00 PM',
-                'price' => 5300,
-                'status' => 'pending',
-                'notes' => 'Almond shape pearl glaze.',
-            ],
-            [
-                'id' => 6,
-                'booking_code' => 'BK-2026-0106',
-                'client_name' => 'Malki Dissanayake',
-                'client_phone' => '071 609 3321',
-                'client_gender' => 'female',
-                'booking_type' => 'Walk-In',
-                'service_name' => 'Butterfly Layer Cut & Blowout',
-                'category' => 'Hair Stylists',
-                'duration_minutes' => 60,
-                'stylist_name' => 'Shenal Wickramasinghe',
-                'stylist_initials' => 'SW',
-                'stylist_gradient' => 'linear-gradient(135deg, #ec4899 0%, #e11d48 100%)',
-                'date' => $today,
-                'start_time' => '09:00 AM',
-                'end_time' => '10:00 AM',
-                'hour_key' => '09:00 AM',
-                'price' => 4500,
-                'status' => 'completed',
-                'notes' => 'Paid via card at POS.',
-            ],
-            [
-                'id' => 7,
-                'booking_code' => 'BK-2026-0107',
-                'client_name' => 'Kasun Bandara',
-                'client_phone' => '077 889 4510',
-                'client_gender' => 'male',
-                'booking_type' => 'Phone Desk',
-                'service_name' => 'Groom Luxury Hair & Detox Facial Package',
-                'category' => 'Barbers',
-                'duration_minutes' => 120,
-                'stylist_name' => 'Roshan Mendis',
-                'stylist_initials' => 'RM',
-                'stylist_gradient' => 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-                'date' => $tomorrow,
-                'start_time' => '10:00 AM',
-                'end_time' => '12:00 PM',
-                'hour_key' => '10:00 AM',
-                'price' => 14500,
-                'status' => 'confirmed',
-                'notes' => 'Wedding trial consultation.',
-            ],
-            [
-                'id' => 8,
-                'booking_code' => 'BK-2026-0108',
-                'client_name' => 'Chathuri Silva',
-                'client_phone' => '076 410 7782',
-                'client_gender' => 'female',
-                'booking_type' => 'Online Booking',
-                'service_name' => 'Party Glam Makeup & Soft Curls',
-                'category' => 'Bridal & Makeup',
-                'duration_minutes' => 90,
-                'stylist_name' => 'Kavindi Senanayake',
-                'stylist_initials' => 'KS',
-                'stylist_gradient' => 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                'date' => $today,
-                'start_time' => '04:30 PM',
-                'end_time' => '06:00 PM',
-                'hour_key' => '04:00 PM',
-                'price' => 12500,
-                'status' => 'cancelled',
-                'notes' => 'Client requested reschedule to next weekend.',
-            ],
-        ];
+        $appointments = Appointment::with(['client', 'staff.user', 'category'])
+            ->whereDate('appointment_date', '>=', now()->startOfWeek())
+            ->orderBy('appointment_date')
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn (Appointment $appointment): array => $this->formatAppointment($appointment))
+            ->values()
+            ->all();
 
         $serviceCatalog = [
             ['name' => 'Bridal Hair & HD Airbrush Makeup', 'category' => 'Bridal & Makeup', 'duration' => 210, 'price' => 18500, 'gender' => 'female'],
@@ -237,5 +63,144 @@ class AppointmentController extends Controller
             'tomorrow',
             'openModalOnLoad'
         ));
+    }
+
+    /**
+     * Store a newly booked appointment (registered client or walk-in guest) and return JSON.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $request->merge([
+            'client_phone' => preg_replace('/[\s\-()]+/', '', (string) $request->input('client_phone')),
+        ]);
+
+        $validated = $request->validate([
+            'client_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'client_name' => ['required', 'string', 'max:150'],
+            'client_phone' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
+            'client_gender' => ['required', Rule::in(['female', 'male', 'other'])],
+            'staff_id' => ['required', 'integer', Rule::exists('staff', 'id')],
+            'service_name' => ['required', 'string', 'max:150'],
+            'category' => ['nullable', 'string', 'max:80'],
+            'duration_minutes' => ['required', 'integer', 'min:15', 'max:600'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'booking_type' => ['required', Rule::in([
+                'walk_in',
+                'phone_desk',
+                'online_booking',
+                'Walk-In',
+                'Phone Desk',
+                'Online Booking',
+            ])],
+            'date' => ['required', 'date'],
+            'start_time' => ['required', 'string', 'regex:/^(?:\d{1,2}:\d{2}\s*(?:AM|PM)|\d{2}:\d{2}(?::\d{2})?)$/i'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $staff = Staff::with(['user', 'category'])->findOrFail($validated['staff_id']);
+
+        $clientUser = ! empty($validated['client_id'])
+            ? User::find($validated['client_id'])
+            : null;
+
+        $categoryId = ! empty($validated['category'])
+            ? Category::where('name', $validated['category'])->value('id')
+            : null;
+
+        $normalizedBookingType = match ($validated['booking_type']) {
+            'Online Booking', 'online_booking' => 'online_booking',
+            'Phone Desk', 'phone_desk' => 'phone_desk',
+            default => 'walk_in',
+        };
+
+        $parsedStart = Carbon::parse($validated['start_time']);
+        $durationMinutes = (int) $validated['duration_minutes'];
+        $parsedEnd = $parsedStart->copy()->addMinutes($durationMinutes);
+
+        $year = Carbon::parse($validated['date'])->format('Y');
+        $nextSequence = ((int) Appointment::max('id')) + 101;
+        do {
+            $bookingCode = sprintf('BK-%s-%04d', $year, $nextSequence);
+            $nextSequence++;
+        } while (Appointment::where('booking_code', $bookingCode)->exists());
+
+        $appointment = Appointment::create([
+            'booking_code' => $bookingCode,
+            'client_id' => $clientUser?->id,
+            'staff_id' => $staff->id,
+            'category_id' => $categoryId ?? $staff->category_id,
+            'client_name' => $clientUser?->name ?? trim($validated['client_name']),
+            'client_phone' => $validated['client_phone'],
+            'client_gender' => $validated['client_gender'],
+            'booking_type' => $normalizedBookingType,
+            'service_name' => $validated['service_name'],
+            'duration_minutes' => $durationMinutes,
+            'appointment_date' => $validated['date'],
+            'start_time' => $parsedStart->format('H:i:s'),
+            'end_time' => $parsedEnd->format('H:i:s'),
+            'price' => $validated['price'],
+            'status' => 'confirmed',
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        $appointment->load(['client', 'staff.user', 'category']);
+
+        return response()->json([
+            'message' => "Booking {$appointment->booking_code} confirmed for {$appointment->display_name}.",
+            'appointment' => $this->formatAppointment($appointment),
+        ], 200);
+    }
+
+    /**
+     * Update an existing appointment's lifecycle status and return JSON.
+     */
+    public function updateStatus(Request $request, Appointment $appointment): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'])],
+        ]);
+
+        $appointment->update([
+            'status' => $validated['status'],
+        ]);
+
+        $appointment->load(['client', 'staff.user', 'category']);
+
+        return response()->json([
+            'message' => "Booking {$appointment->booking_code} marked as {$appointment->status_label}.",
+            'appointment' => $this->formatAppointment($appointment),
+        ], 200);
+    }
+
+    /**
+     * Transform an Appointment Eloquent model into the payload consumed by createAppointmentsBoard.
+     *
+     * @return array<string, mixed>
+     */
+    private function formatAppointment(Appointment $appointment): array
+    {
+        return [
+            'id' => $appointment->id,
+            'booking_code' => $appointment->booking_code,
+            'client_id' => $appointment->client_id,
+            'client_name' => $appointment->display_name,
+            'client_phone' => $appointment->client_phone,
+            'client_gender' => $appointment->client_gender,
+            'booking_type' => $appointment->booking_type_label,
+            'service_name' => $appointment->service_name,
+            'category' => $appointment->category?->name ?? $appointment->staff?->category?->name ?? 'Hair Stylists',
+            'duration_minutes' => (int) $appointment->duration_minutes,
+            'staff_id' => $appointment->staff_id,
+            'stylist_name' => $appointment->staff?->user?->name ?? 'Salon Stylist',
+            'stylist_initials' => $appointment->staff?->initials ?? 'SS',
+            'stylist_gradient' => $appointment->staff?->avatar_gradient ?: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            'date' => $appointment->appointment_date->toDateString(),
+            'start_time' => $appointment->formatted_start_time,
+            'end_time' => $appointment->formatted_end_time,
+            'hour_key' => $appointment->hour_key,
+            'price' => (float) $appointment->price,
+            'status' => $appointment->status,
+            'notes' => $appointment->notes ?? '',
+        ];
     }
 }

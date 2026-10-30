@@ -36,6 +36,7 @@
                 gender: 'both',
             };
             const firstStylist = config.stylists[0] || {
+                id: null,
                 name: 'Salon Stylist',
                 initials: 'SS',
                 gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
@@ -48,6 +49,8 @@
                 stylists: config.stylists,
                 todayDate: config.today,
                 tomorrowDate: config.tomorrow,
+                csrfToken: config.csrfToken,
+                routes: config.routes,
 
                 dateFilter: 'all',
                 customDate: '',
@@ -61,6 +64,14 @@
                 showBookingModal: Boolean(config.openModalOnLoad),
                 selectedBooking: null,
                 toastMessage: '',
+                toastErrorMessage: '',
+
+                isSubmitting: false,
+                updatingBookingId: null,
+                isLookingUpPhone: false,
+                lookupRequestId: 0,
+                formErrors: {},
+                formErrorBanner: '',
 
                 statusTabs: [
                     { key: 'all', label: 'All' },
@@ -84,6 +95,7 @@
                 ],
 
                 form: {
+                    client_id: null,
                     client_name: '',
                     client_phone: '',
                     client_gender: firstService.gender === 'male' ? 'male' : 'female',
@@ -91,6 +103,7 @@
                     category: firstService.category,
                     duration_minutes: firstService.duration,
                     price: firstService.price,
+                    staff_id: firstStylist.id,
                     stylist_name: firstStylist.name,
                     booking_type: 'Walk-In',
                     date: config.today,
@@ -245,21 +258,56 @@
                     return classes[status] || 'bg-slate-100 text-slate-700';
                 },
 
-                updateStatus(id, newStatus) {
-                    const booking = this.appointments.find((item) => item.id === id);
-                    if (!booking) {
+                async updateStatus(id, newStatus) {
+                    if (this.updatingBookingId === id) {
                         return;
                     }
 
-                    booking.status = newStatus;
-                    this.showToast(`Booking ${booking.booking_code} marked as ${this.statusLabel(newStatus)}.`);
+                    this.updatingBookingId = id;
+                    this.toastErrorMessage = '';
+
+                    try {
+                        const response = await fetch(`${this.routes.baseUrl}/${id}/status`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken,
+                            },
+                            body: JSON.stringify({ status: newStatus }),
+                        });
+
+                        if (response.status === 200) {
+                            const data = await response.json();
+                            const index = this.appointments.findIndex((item) => item.id === id);
+                            if (index !== -1) {
+                                this.appointments.splice(index, 1, data.appointment);
+                            }
+                            if (this.selectedBooking && this.selectedBooking.id === id) {
+                                this.selectedBooking = data.appointment;
+                            }
+                            this.showToast(data.message || `Booking marked as ${this.statusLabel(newStatus)}.`);
+                        } else {
+                            this.toastErrorMessage = 'Could not update booking status. Please try again.';
+                        }
+                    } catch (error) {
+                        this.toastErrorMessage = 'Network error while updating booking status.';
+                    } finally {
+                        this.updatingBookingId = null;
+                    }
                 },
 
                 openNewBookingModal(preferredSlot = null) {
                     const defaultService = this.services[0] || firstService;
                     const defaultStylist = this.stylists[0] || firstStylist;
 
+                    this.formErrors = {};
+                    this.formErrorBanner = '';
+                    this.isLookingUpPhone = false;
+                    this.lookupRequestId++;
+
                     Object.assign(this.form, {
+                        client_id: null,
                         client_name: '',
                         client_phone: '',
                         client_gender: defaultService.gender === 'male' ? 'male' : 'female',
@@ -267,6 +315,7 @@
                         category: defaultService.category,
                         duration_minutes: defaultService.duration,
                         price: defaultService.price,
+                        staff_id: defaultStylist.id,
                         stylist_name: defaultStylist.name,
                         booking_type: 'Walk-In',
                         date: this.dateFilter !== 'all' ? this.dateFilter : this.todayDate,
@@ -275,6 +324,66 @@
                     });
 
                     this.showBookingModal = true;
+                },
+
+                async lookupClientByPhone() {
+                    const stripped = String(this.form.client_phone || '').replace(/[\s\-()]+/g, '');
+                    const requestId = ++this.lookupRequestId;
+
+                    if (stripped.length < 9) {
+                        if (this.form.client_id !== null) {
+                            this.form.client_id = null;
+                            this.form.client_name = '';
+                        }
+                        this.isLookingUpPhone = false;
+                        return;
+                    }
+
+                    this.isLookingUpPhone = true;
+
+                    try {
+                        const response = await fetch(
+                            `${this.routes.searchPhone}?phone=${encodeURIComponent(stripped)}`,
+                            {
+                                headers: {
+                                    'Accept': 'application/json',
+                                },
+                            }
+                        );
+
+                        if (requestId !== this.lookupRequestId) {
+                            return;
+                        }
+
+                        if (response.status === 200) {
+                            const data = await response.json();
+
+                            if (data.found && data.user) {
+                                this.form.client_id = data.user.id;
+                                this.form.client_name = data.user.name;
+
+                                if (data.user.gender === 'female' || data.user.gender === 'male') {
+                                    this.selectClientGender(data.user.gender);
+                                }
+                            } else {
+                                if (this.form.client_id !== null) {
+                                    this.form.client_id = null;
+                                    this.form.client_name = '';
+                                } else {
+                                    this.form.client_id = null;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        if (requestId === this.lookupRequestId && this.form.client_id !== null) {
+                            this.form.client_id = null;
+                            this.form.client_name = '';
+                        }
+                    } finally {
+                        if (requestId === this.lookupRequestId) {
+                            this.isLookingUpPhone = false;
+                        }
+                    }
                 },
 
                 selectClientGender(gender) {
@@ -296,6 +405,7 @@
                                 (st) => st.category === compatibleService.category
                             );
                             if (matchingStylist) {
+                                this.form.staff_id = matchingStylist.id;
                                 this.form.stylist_name = matchingStylist.name;
                             }
                         }
@@ -312,83 +422,72 @@
                     this.form.duration_minutes = found.duration;
                     this.form.price = found.price;
 
-                    if (found.gender === 'female' || found.gender === 'male') {
+                    if (this.form.client_id === null && (found.gender === 'female' || found.gender === 'male')) {
                         this.form.client_gender = found.gender;
                     }
 
                     const matchingStylist = this.stylists.find((st) => st.category === found.category);
                     if (matchingStylist) {
+                        this.form.staff_id = matchingStylist.id;
                         this.form.stylist_name = matchingStylist.name;
                     }
                 },
 
-                normalizeHourKey(startTime) {
-                    const match = /^(\d{2}):\d{2}\s+(AM|PM)$/.exec(startTime);
-                    if (!match) {
-                        return '09:00 AM';
+                onStylistChange() {
+                    const selected = this.stylists.find((st) => Number(st.id) === Number(this.form.staff_id));
+                    if (selected) {
+                        this.form.stylist_name = selected.name;
                     }
-
-                    return `${match[1]}:00 ${match[2]}`;
                 },
 
-                computeEndTime(startTime, durationMinutes) {
-                    const match = /^(\d{2}):(\d{2})\s+(AM|PM)$/.exec(startTime);
-                    if (!match) {
-                        return '';
+                async submitNewBooking() {
+                    if (this.isSubmitting) {
+                        return;
                     }
 
-                    let hours = parseInt(match[1], 10);
-                    const minutes = parseInt(match[2], 10);
-                    const period = match[3];
+                    this.formErrors = {};
+                    this.formErrorBanner = '';
+                    this.isSubmitting = true;
 
-                    if (period === 'PM' && hours !== 12) {
-                        hours += 12;
-                    } else if (period === 'AM' && hours === 12) {
-                        hours = 0;
+                    try {
+                        const response = await fetch(this.routes.store, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken,
+                            },
+                            body: JSON.stringify(this.form),
+                        });
+
+                        if (response.status === 200) {
+                            const data = await response.json();
+                            this.appointments.unshift(data.appointment);
+                            this.showBookingModal = false;
+                            this.showToast(
+                                data.message ||
+                                    `Booking ${data.appointment.booking_code} confirmed for ${data.appointment.client_name}.`
+                            );
+                            return;
+                        }
+
+                        if (response.status === 422) {
+                            const errorPayload = await response.json();
+                            this.formErrors = errorPayload.errors || {};
+                            this.formErrorBanner = errorPayload.message || 'Please fix the highlighted validation errors.';
+                            return;
+                        }
+
+                        this.formErrorBanner = 'Unable to save the appointment right now. Please try again.';
+                    } catch (error) {
+                        this.formErrorBanner = 'Network error while saving the appointment.';
+                    } finally {
+                        this.isSubmitting = false;
                     }
-
-                    const totalMinutes = hours * 60 + minutes + Number(durationMinutes || 60);
-                    const endHours24 = Math.floor(totalMinutes / 60) % 24;
-                    const endMinutes = totalMinutes % 60;
-                    const endPeriod = endHours24 >= 12 ? 'PM' : 'AM';
-                    const endHours12 = endHours24 % 12 === 0 ? 12 : endHours24 % 12;
-
-                    return `${String(endHours12).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')} ${endPeriod}`;
-                },
-
-                submitNewBooking() {
-                    const nextId = this.appointments.reduce((max, item) => Math.max(max, item.id), 0) + 1;
-                    const codeNumber = String(100 + nextId).padStart(4, '0');
-                    const stylistObj = this.stylists.find((s) => s.name === this.form.stylist_name) || firstStylist;
-
-                    const newRecord = {
-                        id: nextId,
-                        booking_code: `BK-2026-${codeNumber}`,
-                        client_name: this.form.client_name.trim(),
-                        client_phone: this.form.client_phone.trim(),
-                        client_gender: this.form.client_gender,
-                        booking_type: this.form.booking_type,
-                        service_name: this.form.service_name,
-                        category: this.form.category,
-                        duration_minutes: Number(this.form.duration_minutes),
-                        stylist_name: stylistObj.name,
-                        stylist_initials: stylistObj.initials,
-                        stylist_gradient: stylistObj.gradient,
-                        date: this.form.date,
-                        start_time: this.form.start_time,
-                        end_time: this.computeEndTime(this.form.start_time, this.form.duration_minutes),
-                        hour_key: this.normalizeHourKey(this.form.start_time),
-                        price: Number(this.form.price),
-                        status: 'confirmed',
-                        notes: this.form.notes.trim(),
-                    };
-
-                    this.appointments.unshift(newRecord);
-                    this.showBookingModal = false;
-                    this.showToast(`Booking ${newRecord.booking_code} confirmed for ${newRecord.client_name}.`);
                 },
 
                 showToast(message) {
+                    this.toastErrorMessage = '';
                     this.toastMessage = message;
                 },
             };
@@ -403,11 +502,17 @@
             today: @js($today),
             tomorrow: @js($tomorrow),
             openModalOnLoad: @js($openModalOnLoad),
+            csrfToken: @js(csrf_token()),
+            routes: {
+                store: @js(route('appointments.store')),
+                baseUrl: @js(url('/appointments')),
+                searchPhone: @js(route('clients.search-phone')),
+            },
         })"
         @open-booking-modal.window="openNewBookingModal()"
         @keydown.escape.window="showBookingModal = false; selectedBooking = null"
     >
-        <!-- Interactive Toast Banner -->
+        <!-- Success Toast Banner -->
         <div
             x-show="toastMessage !== ''"
             x-transition
@@ -418,6 +523,17 @@
             <button type="button" @click="toastMessage = ''" class="text-emerald-600 hover:text-emerald-900 shrink-0 cursor-pointer">✕</button>
         </div>
 
+        <!-- Error Toast Banner -->
+        <div
+            x-show="toastErrorMessage !== ''"
+            x-transition
+            class="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 flex items-center justify-between gap-3"
+            style="display: none;"
+        >
+            <span class="truncate">⚠️ <span x-text="toastErrorMessage"></span></span>
+            <button type="button" @click="toastErrorMessage = ''" class="text-red-600 hover:text-red-900 shrink-0 cursor-pointer">✕</button>
+        </div>
+
         @include('appointments.includes.kpi-cards')
         @include('appointments.includes.toolbar-filters')
         @include('appointments.includes.bookings-table')
@@ -425,4 +541,3 @@
         @include('appointments.includes.new-appointment-modal')
     </div>
 @endsection
-

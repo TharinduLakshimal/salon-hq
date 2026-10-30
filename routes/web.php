@@ -24,8 +24,11 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+    Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
+    Route::patch('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
 
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+    Route::get('/clients/search-phone', [ClientController::class, 'searchByPhone'])->name('clients.search-phone');
     Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
     Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');

@@ -152,4 +152,167 @@ class AppointmentPageTest extends TestCase
             'booking_type' => 'walk_in',
         ]);
     }
+
+    public function test_appointments_index_loads_current_week_and_future_appointments_from_database(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+
+        $currentWeekAppointment = Appointment::factory()->create([
+            'booking_code' => 'BK-2026-0901',
+            'appointment_date' => now()->toDateString(),
+        ]);
+
+        Appointment::factory()->create([
+            'booking_code' => 'BK-2026-0902',
+            'appointment_date' => now()->startOfWeek()->subDays(2)->toDateString(),
+        ]);
+
+        $response = $this->actingAs($owner)->get(route('appointments.index'));
+
+        $response->assertViewHas('appointments', function (array $appointments) use ($currentWeekAppointment): bool {
+            return count($appointments) === 1
+                && $appointments[0]['id'] === $currentWeekAppointment->id
+                && $appointments[0]['booking_code'] === 'BK-2026-0901';
+        });
+    }
+
+    public function test_store_creates_registered_and_walk_in_appointments_and_validates_phone(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $client = User::factory()->create([
+            'name' => 'Registered Client Name',
+            'phone_number' => '0778891122',
+            'gender' => 'female',
+            'role' => 'client',
+        ]);
+        $category = Category::create([
+            'name' => 'Hair Stylists',
+            'slug' => 'hair-stylists',
+        ]);
+        $worker = User::factory()->create(['name' => 'Amaya Jayawardena', 'role' => 'worker']);
+        $staff = Staff::create([
+            'user_id' => $worker->id,
+            'category_id' => $category->id,
+            'job_title' => 'Senior Hair Stylist',
+            'serves_gender' => 'both',
+            'availability_status' => 'available',
+        ]);
+
+        $registeredResponse = $this->actingAs($owner)->postJson(route('appointments.store'), [
+            'client_id' => $client->id,
+            'client_name' => $client->name,
+            'client_phone' => '077 889 1122',
+            'client_gender' => 'female',
+            'staff_id' => $staff->id,
+            'service_name' => 'Butterfly Layer Cut & Blowout',
+            'category' => 'Hair Stylists',
+            'duration_minutes' => 60,
+            'price' => 4500,
+            'booking_type' => 'Online Booking',
+            'date' => now()->toDateString(),
+            'start_time' => '10:00 AM',
+            'notes' => 'Registered booking test.',
+        ]);
+
+        $registeredResponse->assertOk()
+            ->assertJsonPath('appointment.client_id', $client->id)
+            ->assertJsonPath('appointment.client_name', 'Registered Client Name')
+            ->assertJsonPath('appointment.booking_type', 'Online Booking')
+            ->assertJsonPath('appointment.end_time', '11:00 AM');
+
+        $walkInResponse = $this->actingAs($owner)->postJson(route('appointments.store'), [
+            'client_id' => null,
+            'client_name' => 'Walk-In Customer',
+            'client_phone' => '+94 71 456 7890',
+            'client_gender' => 'male',
+            'staff_id' => $staff->id,
+            'service_name' => 'Butterfly Layer Cut & Blowout',
+            'category' => 'Hair Stylists',
+            'duration_minutes' => 60,
+            'price' => 4500,
+            'booking_type' => 'Walk-In',
+            'date' => now()->toDateString(),
+            'start_time' => '01:30 PM',
+        ]);
+
+        $walkInResponse->assertOk()
+            ->assertJsonPath('appointment.client_id', null)
+            ->assertJsonPath('appointment.client_name', 'Walk-In Customer')
+            ->assertJsonPath('appointment.client_phone', '+94714567890');
+
+        $invalidPhoneResponse = $this->actingAs($owner)->postJson(route('appointments.store'), [
+            'client_id' => null,
+            'client_name' => 'Invalid Phone Guest',
+            'client_phone' => '0112345678',
+            'client_gender' => 'female',
+            'staff_id' => $staff->id,
+            'service_name' => 'Butterfly Layer Cut & Blowout',
+            'duration_minutes' => 60,
+            'price' => 4500,
+            'booking_type' => 'Walk-In',
+            'date' => now()->toDateString(),
+            'start_time' => '02:00 PM',
+        ]);
+
+        $invalidPhoneResponse->assertUnprocessable()
+            ->assertJsonValidationErrors(['client_phone']);
+    }
+
+    public function test_update_status_endpoint_persists_new_status_and_returns_json(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $appointment = Appointment::factory()->create([
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($owner)->patchJson(
+            route('appointments.update-status', $appointment),
+            ['status' => 'in_progress']
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('appointment.id', $appointment->id)
+            ->assertJsonPath('appointment.status', 'in_progress');
+
+        $this->assertDatabaseHas('appointments', [
+            'id' => $appointment->id,
+            'status' => 'in_progress',
+        ]);
+    }
+
+    public function test_search_by_phone_returns_matching_user_or_not_found_payload(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $client = User::factory()->create([
+            'name' => 'Sachini Fernando',
+            'phone_number' => '076 992 1044',
+            'gender' => 'female',
+            'role' => 'client',
+        ]);
+
+        $foundResponse = $this->actingAs($owner)->getJson(
+            route('clients.search-phone', ['phone' => '+94 76 992 1044'])
+        );
+
+        $foundResponse->assertOk()
+            ->assertJson([
+                'found' => true,
+                'user' => [
+                    'id' => $client->id,
+                    'name' => 'Sachini Fernando',
+                    'phone_number' => '0769921044',
+                    'gender' => 'female',
+                ],
+            ]);
+
+        $missingResponse = $this->actingAs($owner)->getJson(
+            route('clients.search-phone', ['phone' => '0770001122'])
+        );
+
+        $missingResponse->assertOk()
+            ->assertJson([
+                'found' => false,
+                'user' => null,
+            ]);
+    }
 }
