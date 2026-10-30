@@ -75,6 +75,14 @@ class Staff extends Model
     }
 
     /**
+     * Salon appointments assigned to this staff member.
+     */
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class, 'staff_id')->orderBy('appointment_date')->orderBy('start_time');
+    }
+
+    /**
      * Get 2-letter initials from the user's name.
      */
     public function getInitialsAttribute(): string
