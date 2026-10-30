@@ -119,10 +119,12 @@ class StaffDirectory extends Component
     {
         $this->ensureOwner();
 
+        $this->phone_number = preg_replace('/[\s\-()]+/', '', $this->phone_number) ?? '';
+
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'phone_number' => ['required', 'string', 'max:25'],
+            'phone_number' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
             'gender' => ['required', 'in:male,female,other'],
             'job_title' => ['required', 'string', 'max:120'],
             'category' => ['required', 'string', 'max:80'],
@@ -221,10 +223,12 @@ class StaffDirectory extends Component
 
         $staff = Staff::with('user')->findOrFail($this->editingStaffId);
 
+        $this->phone_number = preg_replace('/[\s\-()]+/', '', $this->phone_number) ?? '';
+
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($staff->user_id)],
-            'phone_number' => ['required', 'string', 'max:25'],
+            'phone_number' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
             'gender' => ['required', 'in:male,female,other'],
             'job_title' => ['required', 'string', 'max:120'],
             'category' => ['required', 'string', 'max:80'],

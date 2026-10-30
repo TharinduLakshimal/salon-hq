@@ -6,7 +6,9 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -32,6 +34,18 @@ class User extends Authenticatable
     }
 
     /**
+     * Strip spaces, dashes, and parentheses from phone_number before saving.
+     */
+    protected function phoneNumber(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value !== null
+                ? preg_replace('/[\s\-()]+/', '', $value)
+                : null,
+        );
+    }
+
+    /**
      * Check whether this user is the main salon admin (owner).
      */
     public function isOwner(): bool
@@ -45,5 +59,13 @@ class User extends Authenticatable
     public function staffProfile(): HasOne
     {
         return $this->hasOne(Staff::class, 'user_id');
+    }
+
+    /**
+     * Salon appointments booked under this client user account.
+     */
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class, 'client_id');
     }
 }

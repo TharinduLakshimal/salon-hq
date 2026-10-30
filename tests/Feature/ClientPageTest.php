@@ -85,7 +85,7 @@ class ClientPageTest extends TestCase
         $response = $this->actingAs($worker)->post(route('clients.store'), [
             'name' => 'Ashen Fernando',
             'email' => 'ashen.fdo@example.com',
-            'phone_number' => '071 888 9999',
+            'phone_number' => '(071) 888-9999',
             'gender' => 'male',
         ]);
 
@@ -93,9 +93,26 @@ class ClientPageTest extends TestCase
         $this->assertDatabaseHas('users', [
             'name' => 'Ashen Fernando',
             'email' => 'ashen.fdo@example.com',
-            'phone_number' => '071 888 9999',
+            'phone_number' => '0718889999',
             'gender' => 'male',
             'role' => 'client',
+        ]);
+    }
+
+    public function test_client_store_rejects_invalid_sri_lankan_phone_numbers(): void
+    {
+        $worker = User::factory()->create(['role' => 'worker']);
+
+        $response = $this->actingAs($worker)->post(route('clients.store'), [
+            'name' => 'Invalid Phone User',
+            'email' => 'invalid.phone@example.com',
+            'phone_number' => '0112345678',
+            'gender' => 'female',
+        ]);
+
+        $response->assertSessionHasErrors('phone_number');
+        $this->assertDatabaseMissing('users', [
+            'email' => 'invalid.phone@example.com',
         ]);
     }
 
@@ -117,7 +134,7 @@ class ClientPageTest extends TestCase
         $response = $this->actingAs($owner)->put(route('clients.update', $client), [
             'name' => 'Updated Client Name',
             'email' => 'updated@example.com',
-            'phone_number' => '077 333 4444',
+            'phone_number' => '+94 77 333 4444',
             'gender' => 'female',
         ]);
 
@@ -126,7 +143,7 @@ class ClientPageTest extends TestCase
             'id' => $client->id,
             'name' => 'Updated Client Name',
             'email' => 'updated@example.com',
-            'phone_number' => '077 333 4444',
+            'phone_number' => '+94773334444',
         ]);
 
         $this->actingAs($owner)

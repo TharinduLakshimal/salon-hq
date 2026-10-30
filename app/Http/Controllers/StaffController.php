@@ -31,10 +31,14 @@ class StaffController extends Controller
     {
         abort_unless($request->user()?->isOwner(), 403, 'Only the main salon admin can add staff members.');
 
+        $request->merge([
+            'phone_number' => preg_replace('/[\s\-()]+/', '', (string) $request->input('phone_number')),
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'phone_number' => ['required', 'string', 'max:25'],
+            'phone_number' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
             'gender' => ['required', 'in:male,female,other'],
             'job_title' => ['required', 'string', 'max:120'],
             'category' => ['required', 'string', 'max:80'],
@@ -121,10 +125,14 @@ class StaffController extends Controller
 
         $staff = Staff::with('user')->findOrFail($id);
 
+        $request->merge([
+            'phone_number' => preg_replace('/[\s\-()]+/', '', (string) $request->input('phone_number')),
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($staff->user_id)],
-            'phone_number' => ['required', 'string', 'max:25'],
+            'phone_number' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
             'gender' => ['required', 'in:male,female,other'],
             'job_title' => ['required', 'string', 'max:120'],
             'category' => ['required', 'string', 'max:80'],
