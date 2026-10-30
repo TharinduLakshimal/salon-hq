@@ -41,9 +41,9 @@
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">
                     <th class="px-4 sm:px-6 py-3.5">Client</th>
-                    <th class="px-4 sm:px-5 py-3.5">Contact & Area</th>
+                    <th class="px-4 sm:px-5 py-3.5">Contact & Email</th>
                     <th class="px-4 sm:px-5 py-3.5">Tier & Loyalty</th>
-                    <th class="px-4 sm:px-5 py-3.5">Preferred Stylist</th>
+                    <th class="px-4 sm:px-5 py-3.5">Last Stylist</th>
                     <th class="px-4 sm:px-5 py-3.5">Visits</th>
                     <th class="px-4 sm:px-5 py-3.5">Lifetime Spend</th>
                     <th class="px-4 sm:px-6 py-3.5 text-right">Actions</th>
@@ -76,8 +76,8 @@
                         <td class="px-4 sm:px-5 py-4 whitespace-nowrap">
                             <div class="font-medium text-slate-800" x-text="client.phone_number"></div>
                             <div class="text-xs text-slate-500">
-                                <span x-text="client.email || 'No email'"></span>
-                                <span x-show="client.address">&bull; <span x-text="client.address"></span></span>
+                                <span x-text="client.email"></span>
+                                <span>&bull; Joined <span x-text="client.joined_date"></span></span>
                             </div>
                         </td>
 
@@ -203,4 +203,3 @@
         </div>
     </div>
 </div>
-

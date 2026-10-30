@@ -9,7 +9,7 @@
             </svg>
         </div>
         <h3 class="text-sm font-bold text-slate-900">No clients match your current filters</h3>
-        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Try clearing your search filters or register a new walk-in or regular salon client.</p>
+        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Try clearing your search filters or register a new salon client into the database.</p>
         <div class="mt-4 flex flex-wrap items-center justify-center gap-2.5">
             <button
                 type="button"
@@ -61,23 +61,23 @@
                         ></span>
                     </div>
 
-                    <!-- Contact & Stylist Info -->
+                    <!-- Database Contact & Stylist Info -->
                     <div class="space-y-1.5 text-xs text-slate-600">
                         <div class="flex items-center justify-between gap-2">
                             <span class="font-medium text-slate-800" x-text="client.phone_number"></span>
-                            <span class="text-slate-400 truncate" x-text="client.address || 'Colombo'"></span>
+                            <span class="text-slate-400 truncate">Joined <span x-text="client.joined_date"></span></span>
                         </div>
-                        <div class="text-slate-500 truncate" x-text="client.email || 'No email on file'"></div>
+                        <div class="text-slate-500 truncate" x-text="client.email"></div>
                         <div class="pt-1 flex items-center justify-between gap-2 text-xs">
-                            <span class="text-slate-400">Preferred Stylist:</span>
+                            <span class="text-slate-400">Last Stylist:</span>
                             <span class="font-semibold text-indigo-700 truncate" x-text="client.preferred_stylist"></span>
                         </div>
                     </div>
 
-                    <!-- Hair / Skin Formula & Sensitivity Note -->
+                    <!-- Latest Recorded Service Box (From staff_works DB) -->
                     <div class="rounded-xl bg-slate-50 border border-slate-200/80 p-3">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Formula & Care Notes</div>
-                        <p class="text-xs text-slate-600 line-clamp-2" x-text="client.hair_skin_notes || 'No specific allergies or hair/skin formulas recorded.'"></p>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Latest Salon Activity</div>
+                        <p class="text-xs text-slate-600 line-clamp-2" x-text="client.latest_service_summary"></p>
                     </div>
                 </div>
 
@@ -146,4 +146,3 @@
         </template>
     </div>
 </div>
-

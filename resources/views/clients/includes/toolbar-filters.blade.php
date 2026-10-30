@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    <!-- Middle Row: Live Search, Preferred Stylist & Sort -->
+    <!-- Middle Row: Live Search, Stylist & Sort -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="relative sm:col-span-2">
             <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -67,7 +67,7 @@
             <input
                 type="text"
                 x-model="search"
-                placeholder="Search by client name, mobile, email, ID, or hair/skin formula..."
+                placeholder="Search by client name, mobile, email, client ID, or service..."
                 class="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none transition"
             >
             <button
@@ -85,13 +85,14 @@
         <div>
             <select
                 x-model="stylistFilter"
-                aria-label="Filter by preferred stylist"
+                aria-label="Filter by stylist"
                 class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none transition cursor-pointer"
             >
-                <option value="all">All Preferred Stylists</option>
+                <option value="all">All Stylists & Clients</option>
                 @foreach ($stylistsList as $stylist)
                     <option value="{{ $stylist['name'] }}">{{ $stylist['name'] }}</option>
                 @endforeach
+                <option value="Any Available Stylist">No Stylist Yet (New Clients)</option>
             </select>
         </div>
 
@@ -101,6 +102,7 @@
                 aria-label="Sort clients"
                 class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none transition cursor-pointer"
             >
+                <option value="newest">Sort: Newest Registered</option>
                 <option value="spend_desc">Sort: Highest Spend</option>
                 <option value="visits_desc">Sort: Most Visits</option>
                 <option value="points_desc">Sort: Most Loyalty Points</option>
@@ -143,7 +145,7 @@
 
         <div class="flex items-center justify-between sm:justify-end gap-3">
             <span class="text-xs text-slate-500">
-                Showing <strong class="text-slate-800" x-text="filteredClients.length"></strong> client profiles
+                Showing <strong class="text-slate-800" x-text="filteredClients.length"></strong> database clients
             </span>
             <button
                 type="button"
@@ -157,4 +159,3 @@
         </div>
     </div>
 </div>
-

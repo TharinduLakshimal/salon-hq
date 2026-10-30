@@ -24,7 +24,11 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+    Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+    Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+    Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
 
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');

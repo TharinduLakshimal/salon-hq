@@ -1,4 +1,4 @@
-<!-- Add / Edit Client Modal -->
+<!-- Add / Edit Client Modal (Connected to MySQL users table) -->
 <div
     x-show="showFormModal"
     x-transition.opacity
@@ -10,7 +10,7 @@
         <div class="px-5 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div>
                 <h2 class="text-base sm:text-lg font-bold text-slate-900" x-text="editingClientId ? 'Edit Client Profile' : 'Add New Salon Client'">Add New Salon Client</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Save unisex client preferences, stylist assignment, and formula notes.</p>
+                <p class="text-xs text-slate-500 mt-0.5">Saves client details directly to the Salon HQ MySQL database.</p>
             </div>
             <button
                 type="button"
@@ -22,28 +22,46 @@
             </button>
         </div>
 
-        <form @submit.prevent="saveClient()" class="flex flex-col overflow-hidden">
+        <form
+            method="POST"
+            :action="editingClientId ? baseClientsUrl + '/' + editingClientId : storeClientUrl"
+            class="flex flex-col overflow-hidden"
+        >
+            @csrf
+            <template x-if="editingClientId">
+                <input type="hidden" name="_method" value="PUT">
+            </template>
+            <input type="hidden" name="editing_client_id" :value="editingClientId || ''">
+
             <div class="p-5 sm:p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
                     <input
                         type="text"
+                        name="name"
                         x-model="form.name"
                         required
                         placeholder="e.g. Senuri Jayawardena"
                         class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
                     >
+                    @error('name')
+                        <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Mobile Number *</label>
                     <input
                         type="text"
+                        name="phone_number"
                         x-model="form.phone_number"
                         required
                         placeholder="e.g. 077 450 1122"
                         class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
                     >
+                    @error('phone_number')
+                        <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <!-- Explicit Interactive Client Gender Radio Cards -->
@@ -99,100 +117,27 @@
                             </span>
                         </button>
                     </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Email Address</label>
-                    <input
-                        type="email"
-                        x-model="form.email"
-                        placeholder="e.g. senuri@gmail.com"
-                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    >
-                </div>
-
-                <!-- Mobile-Friendly Date of Birth Picker -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Date of Birth (Birthday Perks)</label>
-                    <div class="relative w-full">
-                        <div class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm flex items-center justify-between gap-2">
-                            <span
-                                :class="form.date_of_birth ? 'text-slate-900' : 'text-slate-400'"
-                                class="truncate"
-                                x-text="form.date_of_birth ? formatDobLabel(form.date_of_birth) : 'Select birth date...'"
-                            ></span>
-                            <svg class="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
-                        </div>
-                        <input
-                            type="date"
-                            x-model="form.date_of_birth"
-                            @click="if ($el.showPicker) { try { $el.showPicker(); } catch (e) {} }"
-                            aria-label="Date of birth"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        >
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">City / Area</label>
-                    <input
-                        type="text"
-                        x-model="form.address"
-                        placeholder="e.g. Colombo 07 / Nugegoda"
-                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    >
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Preferred Stylist / Barber *</label>
-                    <select
-                        x-model="form.preferred_stylist"
-                        required
-                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    >
-                        @foreach ($stylistsList as $stylist)
-                            <option value="{{ $stylist['name'] }}">{{ $stylist['name'] }} ({{ $stylist['category'] }})</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Membership Tier *</label>
-                    <select
-                        x-model="form.membership_tier"
-                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    >
-                        <option value="New Client">New Client</option>
-                        <option value="Regular">Regular</option>
-                        <option value="Gold Member">Gold Member</option>
-                        <option value="VIP Platinum">VIP Platinum</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Loyalty Points Balance</label>
-                    <input
-                        type="number"
-                        min="0"
-                        step="10"
-                        x-model="form.loyalty_points"
-                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    >
+                    @error('gender')
+                        <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Hair Dye Formulas, Allergies & Skin Sensitivity Notes</label>
-                    <textarea
-                        x-model="form.hair_skin_notes"
-                        rows="3"
-                        placeholder="Record color formulas, skin sensitivities, beard clip guard numbers, or nail shape preferences..."
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Email Address *
+                        <span x-show="!editingClientId" class="font-normal text-slate-400">(Default login password: <code>password</code>)</span>
+                    </label>
+                    <input
+                        type="email"
+                        name="email"
+                        x-model="form.email"
+                        required
+                        placeholder="e.g. senuri@example.com"
                         class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    ></textarea>
+                    >
+                    @error('email')
+                        <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span>
+                    @enderror
                 </div>
             </div>
 
@@ -207,16 +152,16 @@
                 <button
                     type="submit"
                     class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white shadow-sm shadow-indigo-600/20 cursor-pointer"
-                    x-text="editingClientId ? 'Update Client' : 'Save Client Profile'"
+                    x-text="editingClientId ? 'Update Client' : 'Save Client to Database'"
                 >
-                    Save Client Profile
+                    Save Client to Database
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Client 360° Profile Quick-Inspect Modal -->
+<!-- Client 360° Database Profile Modal -->
 <div
     x-show="selectedClient !== null"
     x-transition.opacity
@@ -267,16 +212,15 @@
                 <!-- Contact Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div class="rounded-xl bg-slate-50 border border-slate-200/80 p-3">
-                        <div class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Contact Info</div>
+                        <div class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Contact Details</div>
                         <div class="font-bold text-slate-900 mt-1" x-text="selectedClient.phone_number"></div>
-                        <div class="text-slate-500 truncate mt-0.5" x-text="selectedClient.email || 'No email provided'"></div>
+                        <div class="text-slate-500 truncate mt-0.5" x-text="selectedClient.email"></div>
                     </div>
                     <div class="rounded-xl bg-slate-50 border border-slate-200/80 p-3">
-                        <div class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Salon Preferences</div>
+                        <div class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Account & Stylist</div>
                         <div class="font-bold text-indigo-700 mt-1 truncate" x-text="selectedClient.preferred_stylist"></div>
                         <div class="text-slate-500 mt-0.5">
-                            <span x-text="selectedClient.address || 'Colombo'"></span>
-                            <span x-show="selectedClient.date_of_birth">&bull; DOB: <span x-text="formatDobLabel(selectedClient.date_of_birth)"></span></span>
+                            Joined <span x-text="selectedClient.joined_date"></span>
                         </div>
                     </div>
                 </div>
@@ -285,41 +229,35 @@
                 <div class="rounded-xl bg-indigo-50/60 border border-indigo-100 p-3.5 flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <div class="text-xs text-slate-600">
-                            <strong class="text-slate-900" x-text="selectedClient.total_visits"></strong> visits &bull;
+                            <strong class="text-slate-900" x-text="selectedClient.total_visits"></strong> completed visits &bull;
                             Total Spend: <strong class="text-emerald-700">Rs. <span x-text="formatNumber(selectedClient.total_spent)"></span></strong>
                         </div>
                         <div class="text-xs font-bold text-amber-700 mt-0.5">
-                            Loyalty Balance: <span x-text="formatNumber(selectedClient.loyalty_points)"></span> pts
+                            Earned Loyalty Points: <span x-text="formatNumber(selectedClient.loyalty_points)"></span> pts
                         </div>
                     </div>
-
-                    <button
-                        type="button"
-                        @click="awardLoyaltyPoints(selectedClient.id, 50)"
-                        class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold shadow-2xs transition cursor-pointer"
+                    <span
+                        x-show="selectedClient.email_verified"
+                        class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-semibold"
                     >
-                        +50 Bonus Pts
-                    </button>
+                        Verified Account
+                    </span>
                 </div>
 
-                <!-- Formula & Allergy Notes -->
+                <!-- Completed Salon Works History from Database -->
                 <div>
-                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Hair / Skin Formula & Sensitivity Notes</div>
-                    <p class="text-xs text-slate-700 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 leading-relaxed" x-text="selectedClient.hair_skin_notes || 'No specific allergy or styling formula notes recorded yet.'"></p>
-                </div>
-
-                <!-- Recent Visits -->
-                <div>
-                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Recent Salon Visits</div>
-                    <div x-show="!selectedClient.recent_services || selectedClient.recent_services.length === 0" class="text-xs text-slate-400 italic">
-                        No past salon sessions recorded yet.
+                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Recorded Salon Services (MySQL)</div>
+                    <div x-show="!selectedClient.recent_services || selectedClient.recent_services.length === 0" class="text-xs text-slate-400 bg-slate-50 rounded-xl p-3.5 border border-slate-100">
+                        No completed salon services recorded yet for this client.
                     </div>
                     <div class="space-y-2" x-show="selectedClient.recent_services && selectedClient.recent_services.length > 0">
                         <template x-for="(visit, idx) in selectedClient.recent_services" :key="idx">
                             <div class="rounded-xl border border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
                                 <div class="min-w-0">
                                     <div class="font-semibold text-slate-800 truncate" x-text="visit.service"></div>
-                                    <div class="text-slate-400" x-text="visit.date"></div>
+                                    <div class="text-slate-400">
+                                        <span x-text="visit.date"></span> &bull; Stylist: <span class="text-slate-600 font-medium" x-text="visit.stylist"></span>
+                                    </div>
                                 </div>
                                 <span class="font-bold text-slate-900 shrink-0">Rs. <span x-text="formatNumber(visit.amount)"></span></span>
                             </div>
@@ -334,7 +272,7 @@
                     @click="openEditModal(selectedClient); selectedClient = null"
                     class="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer"
                 >
-                    Edit Profile
+                    Edit Client Details
                 </button>
                 <a
                     href="{{ route('appointments.index', ['new' => 1]) }}"
@@ -349,7 +287,7 @@
 </div>
 
 @if ($isOwner)
-    <!-- Owner-Only Delete Client Confirmation Modal -->
+    <!-- Owner-Only Delete Client Database Confirmation Modal -->
     <div
         x-show="clientToDelete !== null"
         x-transition.opacity
@@ -367,9 +305,12 @@
                 </div>
                 <h3 class="text-base font-bold text-slate-900">Remove Client Profile?</h3>
                 <p class="text-xs text-slate-500 mt-1.5">
-                    Are you sure you want to remove <strong class="text-slate-800" x-text="clientToDelete.name"></strong> (<span x-text="clientToDelete.client_code"></span>) from the salon client directory?
+                    Are you sure you want to permanently delete <strong class="text-slate-800" x-text="clientToDelete.name"></strong> (<span x-text="clientToDelete.client_code"></span>) from the MySQL database?
                 </p>
-                <div class="mt-5 flex items-center justify-center gap-3">
+
+                <form method="POST" :action="baseClientsUrl + '/' + clientToDelete.id" class="mt-5 flex items-center justify-center gap-3">
+                    @csrf
+                    @method('DELETE')
                     <button
                         type="button"
                         @click="clientToDelete = null"
@@ -378,15 +319,13 @@
                         Cancel
                     </button>
                     <button
-                        type="button"
-                        @click="deleteClient()"
+                        type="submit"
                         class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold text-white cursor-pointer"
                     >
                         Yes, Delete Client
                     </button>
-                </div>
+                </form>
             </div>
         </template>
     </div>
 @endif
-

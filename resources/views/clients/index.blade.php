@@ -6,7 +6,7 @@
     <div class="min-w-0">
         <h1 class="text-lg sm:text-xl font-bold text-slate-900 truncate">Clients & Loyalty CRM</h1>
         <p class="hidden sm:block text-xs text-slate-500 mt-0.5 truncate">
-            Manage unisex client profiles, styling formulas, loyalty points, and visit history.
+            Connected to MySQL — manage unisex client accounts, service history, and loyalty tiers.
         </p>
     </div>
 @endsection
@@ -28,33 +28,25 @@
 @section('content')
     <script>
         window.createClientsDirectory = function (config) {
-            const defaultStylistName = (config.stylists[0] && config.stylists[0].name) || 'Kavindi Senanayake';
-            const gradients = [
-                'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                'linear-gradient(135deg, #ec4899 0%, #e11d48 100%)',
-                'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-                'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            ];
-
             return {
                 clients: config.clients,
                 stylists: config.stylists,
+                storeClientUrl: config.storeUrl,
+                baseClientsUrl: config.baseUrl,
 
                 tierFilter: 'all',
                 genderFilter: 'all',
                 stylistFilter: 'all',
-                sortBy: 'spend_desc',
+                sortBy: 'newest',
                 search: '',
                 viewMode: 'grid',
                 currentPage: 1,
                 perPage: 5,
 
-                showFormModal: Boolean(config.openModalOnLoad),
-                editingClientId: null,
+                showFormModal: Boolean(config.openModalOnLoad || config.hasErrors),
+                editingClientId: config.oldInput.editing_client_id ? Number(config.oldInput.editing_client_id) : null,
                 selectedClient: null,
                 clientToDelete: null,
-                toastMessage: '',
 
                 tierTabs: [
                     { key: 'all', label: 'All Clients' },
@@ -65,16 +57,19 @@
                 ],
 
                 form: {
-                    name: '',
-                    phone_number: '',
-                    email: '',
-                    gender: 'female',
-                    date_of_birth: '',
-                    address: '',
-                    preferred_stylist: defaultStylistName,
-                    membership_tier: 'New Client',
-                    loyalty_points: 100,
-                    hair_skin_notes: '',
+                    name: config.oldInput.name || '',
+                    phone_number: config.oldInput.phone_number || '',
+                    email: config.oldInput.email || '',
+                    gender: config.oldInput.gender || 'female',
+                },
+
+                init() {
+                    this.$watch('tierFilter', () => { this.currentPage = 1; });
+                    this.$watch('genderFilter', () => { this.currentPage = 1; });
+                    this.$watch('stylistFilter', () => { this.currentPage = 1; });
+                    this.$watch('sortBy', () => { this.currentPage = 1; });
+                    this.$watch('search', () => { this.currentPage = 1; });
+                    this.$watch('perPage', () => { this.currentPage = 1; });
                 },
 
                 get baseFilteredWithoutTier() {
@@ -93,9 +88,8 @@
                                 client.name,
                                 client.phone_number,
                                 client.email,
-                                client.address,
                                 client.preferred_stylist,
-                                client.hair_skin_notes,
+                                client.latest_service_summary,
                             ].join(' ').toLowerCase();
 
                             if (!haystack.includes(q)) {
@@ -113,6 +107,9 @@
                         : this.baseFilteredWithoutTier.filter((c) => c.membership_tier === this.tierFilter);
 
                     return list.sort((a, b) => {
+                        if (this.sortBy === 'spend_desc') {
+                            return Number(b.total_spent) - Number(a.total_spent);
+                        }
                         if (this.sortBy === 'visits_desc') {
                             return Number(b.total_visits) - Number(a.total_visits);
                         }
@@ -123,17 +120,8 @@
                             return a.name.localeCompare(b.name);
                         }
 
-                        return Number(b.total_spent) - Number(a.total_spent);
+                        return Number(b.id) - Number(a.id);
                     });
-                },
-
-                init() {
-                    this.$watch('tierFilter', () => { this.currentPage = 1; });
-                    this.$watch('genderFilter', () => { this.currentPage = 1; });
-                    this.$watch('stylistFilter', () => { this.currentPage = 1; });
-                    this.$watch('sortBy', () => { this.currentPage = 1; });
-                    this.$watch('search', () => { this.currentPage = 1; });
-                    this.$watch('perPage', () => { this.currentPage = 1; });
                 },
 
                 get totalPages() {
@@ -241,18 +229,6 @@
                     return Number(val || 0).toLocaleString('en-US');
                 },
 
-                formatDobLabel(dateStr) {
-                    if (!dateStr) {
-                        return '';
-                    }
-                    const parsed = new Date(dateStr + 'T00:00:00');
-                    if (Number.isNaN(parsed.getTime())) {
-                        return dateStr;
-                    }
-
-                    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                },
-
                 tierBadgeClass(tier) {
                     const classes = {
                         'VIP Platinum': 'bg-purple-100 text-purple-700',
@@ -264,13 +240,6 @@
                     return classes[tier] || 'bg-slate-100 text-slate-700';
                 },
 
-                computeInitials(name) {
-                    const parts = String(name || 'CL').trim().split(/\s+/).slice(0, 2);
-                    const initials = parts.map((p) => (p[0] || '').toUpperCase()).join('');
-
-                    return initials || 'CL';
-                },
-
                 openCreateModal() {
                     this.editingClientId = null;
                     Object.assign(this.form, {
@@ -278,12 +247,6 @@
                         phone_number: '',
                         email: '',
                         gender: 'female',
-                        date_of_birth: '',
-                        address: '',
-                        preferred_stylist: defaultStylistName,
-                        membership_tier: 'New Client',
-                        loyalty_points: 100,
-                        hair_skin_notes: '',
                     });
                     this.showFormModal = true;
                 },
@@ -292,95 +255,11 @@
                     this.editingClientId = client.id;
                     Object.assign(this.form, {
                         name: client.name,
-                        phone_number: client.phone_number,
+                        phone_number: client.raw_phone_number || '',
                         email: client.email || '',
                         gender: client.gender || 'female',
-                        date_of_birth: client.date_of_birth || '',
-                        address: client.address || '',
-                        preferred_stylist: client.preferred_stylist || defaultStylistName,
-                        membership_tier: client.membership_tier || 'Regular',
-                        loyalty_points: Number(client.loyalty_points || 0),
-                        hair_skin_notes: client.hair_skin_notes || '',
                     });
                     this.showFormModal = true;
-                },
-
-                saveClient() {
-                    if (this.editingClientId) {
-                        const existing = this.clients.find((c) => c.id === this.editingClientId);
-                        if (existing) {
-                            Object.assign(existing, {
-                                name: this.form.name.trim(),
-                                phone_number: this.form.phone_number.trim(),
-                                email: this.form.email.trim(),
-                                gender: this.form.gender,
-                                date_of_birth: this.form.date_of_birth,
-                                address: this.form.address.trim(),
-                                preferred_stylist: this.form.preferred_stylist,
-                                membership_tier: this.form.membership_tier,
-                                loyalty_points: Number(this.form.loyalty_points || 0),
-                                hair_skin_notes: this.form.hair_skin_notes.trim(),
-                                avatar_initials: this.computeInitials(this.form.name),
-                            });
-                            this.toastMessage = `Client profile for ${existing.name} updated.`;
-                        }
-                    } else {
-                        const nextId = this.clients.reduce((max, item) => Math.max(max, item.id), 0) + 1;
-                        const codeNumber = String(nextId).padStart(4, '0');
-                        const newClient = {
-                            id: nextId,
-                            client_code: `CL-2026-${codeNumber}`,
-                            name: this.form.name.trim(),
-                            phone_number: this.form.phone_number.trim(),
-                            email: this.form.email.trim(),
-                            gender: this.form.gender,
-                            date_of_birth: this.form.date_of_birth,
-                            address: this.form.address.trim() || 'Colombo',
-                            preferred_stylist: this.form.preferred_stylist,
-                            membership_tier: this.form.membership_tier,
-                            loyalty_points: Number(this.form.loyalty_points || 100),
-                            total_visits: 0,
-                            total_spent: 0,
-                            last_visit: 'New Registration',
-                            hair_skin_notes: this.form.hair_skin_notes.trim(),
-                            avatar_initials: this.computeInitials(this.form.name),
-                            avatar_gradient: gradients[nextId % gradients.length],
-                            recent_services: [],
-                        };
-
-                        this.clients.unshift(newClient);
-                        this.currentPage = 1;
-                        this.toastMessage = `New client ${newClient.name} (${newClient.client_code}) registered.`;
-                    }
-
-                    this.showFormModal = false;
-                    this.editingClientId = null;
-                },
-
-                awardLoyaltyPoints(clientId, bonusPoints) {
-                    const target = this.clients.find((c) => c.id === clientId);
-                    if (!target) {
-                        return;
-                    }
-
-                    target.loyalty_points = Number(target.loyalty_points || 0) + Number(bonusPoints);
-                    this.toastMessage = `Added +${bonusPoints} loyalty points to ${target.name}.`;
-                },
-
-                deleteClient() {
-                    if (!this.clientToDelete) {
-                        return;
-                    }
-
-                    const deletedName = this.clientToDelete.name;
-                    const deletedId = this.clientToDelete.id;
-                    this.clients = this.clients.filter((c) => c.id !== deletedId);
-                    this.currentPage = Math.min(this.currentPage, this.totalPages);
-                    if (this.selectedClient && this.selectedClient.id === deletedId) {
-                        this.selectedClient = null;
-                    }
-                    this.clientToDelete = null;
-                    this.toastMessage = `Client profile for ${deletedName} removed.`;
                 },
             };
         };
@@ -391,21 +270,20 @@
             clients: @js($clients),
             stylists: @js($stylistsList),
             openModalOnLoad: @js($openModalOnLoad),
+            hasErrors: @js($errors->any()),
+            oldInput: @js([
+                'editing_client_id' => old('editing_client_id'),
+                'name' => old('name'),
+                'phone_number' => old('phone_number'),
+                'email' => old('email'),
+                'gender' => old('gender'),
+            ]),
+            storeUrl: @js(route('clients.store')),
+            baseUrl: @js(url('/clients')),
         })"
         @open-client-modal.window="openCreateModal()"
         @keydown.escape.window="showFormModal = false; selectedClient = null; clientToDelete = null"
     >
-        <!-- Interactive Toast Banner -->
-        <div
-            x-show="toastMessage !== ''"
-            x-transition
-            class="mb-5 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between gap-3"
-            style="display: none;"
-        >
-            <span class="truncate">✅ <span x-text="toastMessage"></span></span>
-            <button type="button" @click="toastMessage = ''" class="text-emerald-600 hover:text-emerald-900 shrink-0 cursor-pointer">✕</button>
-        </div>
-
         @include('clients.includes.kpi-cards')
         @include('clients.includes.toolbar-filters')
         @include('clients.includes.clients-grid')
@@ -413,4 +291,3 @@
         @include('clients.includes.client-modals')
     </div>
 @endsection
-

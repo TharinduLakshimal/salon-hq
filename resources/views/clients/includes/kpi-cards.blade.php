@@ -24,7 +24,7 @@
     <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between shadow-2xs">
         <div class="min-w-0">
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">VIP & Gold Tier</div>
-            <div class="text-3xl font-bold text-slate-900 my-1.5" x-text="stats.vipAndGold">4</div>
+            <div class="text-3xl font-bold text-slate-900 my-1.5" x-text="stats.vipAndGold">0</div>
             <div class="text-xs font-medium text-purple-600">High-retention members</div>
         </div>
         <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
@@ -38,7 +38,7 @@
         <div class="min-w-0">
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Loyalty Points</div>
             <div class="text-2xl sm:text-3xl font-bold text-slate-900 my-1.5 truncate">
-                <span x-text="formatNumber(stats.totalPoints)">8,180</span> <span class="text-sm font-semibold text-slate-400">pts</span>
+                <span x-text="formatNumber(stats.totalPoints)">0</span> <span class="text-sm font-semibold text-slate-400">pts</span>
             </div>
             <div class="text-xs font-medium text-amber-600">Active reward balance</div>
         </div>
@@ -53,7 +53,7 @@
     <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between shadow-2xs">
         <div class="min-w-0">
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lifetime Spend</div>
-            <div class="text-2xl sm:text-3xl font-bold text-slate-900 my-1.5 truncate" x-text="'Rs. ' + formatNumber(stats.totalSpend)">Rs. 490,000</div>
+            <div class="text-2xl sm:text-3xl font-bold text-slate-900 my-1.5 truncate" x-text="'Rs. ' + formatNumber(stats.totalSpend)">Rs. 0</div>
             <div class="text-xs font-medium text-emerald-600 truncate">
                 Avg: Rs. <span x-text="formatNumber(stats.averageSpend)"></span> / client
             </div>
