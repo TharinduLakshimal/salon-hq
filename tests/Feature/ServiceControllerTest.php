@@ -173,7 +173,7 @@ class ServiceControllerTest extends TestCase
 
     public function test_update_modifies_service_pricing_duration_gender_and_package_flag(): void
     {
-        $worker = User::factory()->create(['role' => 'worker']);
+        $owner = User::factory()->create(['role' => 'owner']);
         $hairCategory = Category::create([
             'name' => 'Hair Stylists',
             'slug' => 'hair-stylists',
@@ -191,7 +191,7 @@ class ServiceControllerTest extends TestCase
             'is_package' => false,
         ]);
 
-        $response = $this->actingAs($worker)->put(route('services.update', $service), [
+        $response = $this->actingAs($owner)->put(route('services.update', $service), [
             'name' => 'Bridal Full Dressing & Draping',
             'category_id' => $bridalCategory->id,
             'target_gender' => 'ladies',

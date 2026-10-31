@@ -80,9 +80,9 @@ class ClientPageTest extends TestCase
 
     public function test_authenticated_user_can_create_client_in_database(): void
     {
-        $worker = User::factory()->create(['role' => 'worker']);
+        $owner = User::factory()->create(['role' => 'owner']);
 
-        $response = $this->actingAs($worker)->post(route('clients.store'), [
+        $response = $this->actingAs($owner)->post(route('clients.store'), [
             'name' => 'Ashen Fernando',
             'email' => 'ashen.fdo@example.com',
             'phone_number' => '(071) 888-9999',
@@ -101,9 +101,9 @@ class ClientPageTest extends TestCase
 
     public function test_client_store_rejects_invalid_sri_lankan_phone_numbers(): void
     {
-        $worker = User::factory()->create(['role' => 'worker']);
+        $owner = User::factory()->create(['role' => 'owner']);
 
-        $response = $this->actingAs($worker)->post(route('clients.store'), [
+        $response = $this->actingAs($owner)->post(route('clients.store'), [
             'name' => 'Invalid Phone User',
             'email' => 'invalid.phone@example.com',
             'phone_number' => '0112345678',
