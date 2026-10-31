@@ -22,4 +22,14 @@ class Category extends Model
     {
         return $this->hasMany(StaffWork::class, 'category_id');
     }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class, 'category_id');
+    }
+
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class, 'category_id');
+    }
 }

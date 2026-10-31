@@ -35,7 +35,7 @@
             @endforeach
         </div>
 
-        <div class="flex items-center gap-3 w-full sm:w-auto">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             <div class="relative flex-1 sm:w-72">
                 <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -49,17 +49,19 @@
                 >
             </div>
 
-            <button
-                type="button"
-                wire:click="openModal"
-                class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition cursor-pointer shrink-0"
-            >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Add New Staff</span>
-            </button>
+            @if ($isOwner)
+                <button
+                    type="button"
+                    wire:click="openModal"
+                    class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition cursor-pointer shrink-0"
+                >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>Add New Staff</span>
+                </button>
+            @endif
         </div>
     </div>
 
@@ -94,10 +96,14 @@
     @else
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             @foreach ($staffMembers as $member)
-                @include('staff.includes.staff-card', ['member' => $member])
+                @include('staff.includes.staff-card', ['member' => $member, 'isOwner' => $isOwner])
             @endforeach
         </div>
     @endif
 
-    @include('staff.includes.add-staff-modal')
+    @if ($isOwner)
+        @include('staff.includes.add-staff-modal')
+        @include('staff.includes.edit-staff-modal')
+        @include('staff.includes.delete-staff-modal')
+    @endif
 </div>

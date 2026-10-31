@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class StaffController extends Controller
@@ -28,10 +29,16 @@ class StaffController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()?->isOwner(), 403, 'Only the main salon admin can add staff members.');
+
+        $request->merge([
+            'phone_number' => preg_replace('/[\s\-()]+/', '', (string) $request->input('phone_number')),
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'phone_number' => ['required', 'string', 'max:25'],
+            'phone_number' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
             'gender' => ['required', 'in:male,female,other'],
             'job_title' => ['required', 'string', 'max:120'],
             'category' => ['required', 'string', 'max:80'],
@@ -107,5 +114,91 @@ class StaffController extends Controller
         $staff = Staff::with(['user', 'category', 'works.category', 'shifts'])->findOrFail($id);
 
         return view('staff.show', compact('staff'));
+    }
+
+    /**
+     * Update an existing staff member (Main Admin / Owner only).
+     */
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        abort_unless($request->user()?->isOwner(), 403, 'Only the main salon admin can edit staff members.');
+
+        $staff = Staff::with('user')->findOrFail($id);
+
+        $request->merge([
+            'phone_number' => preg_replace('/[\s\-()]+/', '', (string) $request->input('phone_number')),
+        ]);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($staff->user_id)],
+            'phone_number' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
+            'gender' => ['required', 'in:male,female,other'],
+            'job_title' => ['required', 'string', 'max:120'],
+            'category' => ['required', 'string', 'max:80'],
+            'serves_gender' => ['required', 'in:both,female,male'],
+            'availability_status' => ['required', 'in:available,in_session,on_break,off_duty'],
+            'experience' => ['required', 'string', 'max:50'],
+            'commission_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+            'specialties' => ['nullable', 'string'],
+            'bio' => ['nullable', 'string'],
+        ]);
+
+        $skills = ! empty($validated['specialties'])
+            ? array_values(array_filter(array_map('trim', explode(',', $validated['specialties']))))
+            : ['Salon Styling', 'Client Care'];
+
+        DB::transaction(function () use ($staff, $validated, $skills) {
+            $categoryModel = Category::firstOrCreate(
+                ['slug' => Str::slug($validated['category'])],
+                ['name' => $validated['category']]
+            );
+
+            $staff->user?->update([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone_number' => $validated['phone_number'],
+                'gender' => $validated['gender'],
+            ]);
+
+            $staff->update([
+                'category_id' => $categoryModel->id,
+                'job_title' => $validated['job_title'],
+                'serves_gender' => $validated['serves_gender'],
+                'availability_status' => $validated['availability_status'],
+                'experience' => $validated['experience'],
+                'commission_percentage' => $validated['commission_percentage'],
+                'specialties' => $skills,
+                'bio' => $validated['bio'] ?: 'Dedicated salon specialist at Salon HQ.',
+            ]);
+        });
+
+        return redirect()
+            ->route('staff.show', $staff->id)
+            ->with('success', 'Staff member profile updated successfully!');
+    }
+
+    /**
+     * Delete a staff member and their worker user account (Main Admin / Owner only).
+     */
+    public function destroy(Request $request, int $id): RedirectResponse
+    {
+        abort_unless($request->user()?->isOwner(), 403, 'Only the main salon admin can delete staff members.');
+
+        $staff = Staff::with('user')->findOrFail($id);
+        $staffName = $staff->user?->name ?? 'Staff member';
+
+        DB::transaction(function () use ($staff) {
+            $workerUser = $staff->user;
+            $staff->delete();
+
+            if ($workerUser && $workerUser->role === 'worker') {
+                $workerUser->delete();
+            }
+        });
+
+        return redirect()
+            ->route('staff.index')
+            ->with('success', "{$staffName} has been removed from Salon HQ.");
     }
 }

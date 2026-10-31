@@ -1,0 +1,719 @@
+@extends('layouts.app')
+
+@section('title', 'Appointments & Bookings')
+
+@section('header-left')
+    <div class="min-w-0">
+        <h1 class="text-lg sm:text-xl font-bold text-slate-900 truncate">Appointments & Bookings</h1>
+        <p class="hidden sm:block text-xs text-slate-500 mt-0.5 truncate">
+            Manage daily salon chair schedules, walk-ins, and unisex client bookings.
+        </p>
+    </div>
+@endsection
+
+@section('header-right')
+    <button
+        type="button"
+        @click="$dispatch('open-booking-modal')"
+        class="inline-flex items-center gap-1.5 sm:gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 shrink-0 whitespace-nowrap transition cursor-pointer"
+    >
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>New Appointment</span>
+    </button>
+@endsection
+
+@section('content')
+    <script>
+        window.createAppointmentsBoard = function (config) {
+            const isWorker = Boolean(config.isWorker);
+            const workerStaffId = config.workerStaffId || null;
+            const workerStaffName = config.workerStaffName || '';
+
+            const servicesList = Array.isArray(config.services) ? config.services : [];
+            const categoriesList = Array.isArray(config.categories) ? config.categories : [];
+            const preselectedClient = config.preselectedClient || null;
+            const firstService = servicesList[0] || {
+                id: null,
+                name: '',
+                price: 0,
+                duration_minutes: 30,
+                target_gender: 'both',
+                category_id: null,
+                is_package: false,
+            };
+            const firstCategory = categoriesList.find((cat) => Number(cat.id) === Number(firstService.category_id));
+            const firstStylist = (isWorker && workerStaffId)
+                ? (config.stylists.find((s) => Number(s.id) === Number(workerStaffId)) || {
+                    id: workerStaffId,
+                    name: workerStaffName || 'You (Stylist)',
+                    initials: 'ST',
+                    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    category_id: null,
+                    category: 'Hair Stylists',
+                    serves_gender: 'both',
+                })
+                : (config.stylists[0] || {
+                    id: null,
+                    name: 'Salon Stylist',
+                    initials: 'SS',
+                    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    category_id: null,
+                    category: 'Hair Stylists',
+                    serves_gender: 'both',
+                });
+            const initialGender =
+                preselectedClient && (preselectedClient.gender === 'male' || preselectedClient.gender === 'female')
+                    ? preselectedClient.gender
+                    : firstService.target_gender === 'gents'
+                        ? 'male'
+                        : 'female';
+
+            return {
+                appointments: config.appointments,
+                services: servicesList,
+                categories: categoriesList,
+                stylists: config.stylists,
+                todayDate: config.today,
+                tomorrowDate: config.tomorrow,
+                csrfToken: config.csrfToken,
+                routes: config.routes,
+
+                isWorker: isWorker,
+                workerStaffId: workerStaffId,
+                workerStaffName: workerStaffName,
+
+                dateFilter: 'all',
+                customDate: '',
+                statusFilter: 'all',
+                stylistFilter: 'all',
+                categoryFilter: 'all',
+                genderFilter: 'all',
+                search: '',
+                viewMode: 'list',
+
+                showBookingModal: Boolean(config.openModalOnLoad),
+                modalMode: 'create',
+                editingBookingId: null,
+                editingBookingCode: '',
+                selectedBooking: null,
+                toastMessage: '',
+                toastErrorMessage: '',
+
+                isSubmitting: false,
+                updatingBookingId: null,
+                isLookingUpPhone: false,
+                lookupRequestId: 0,
+                formErrors: {},
+                formErrorBanner: '',
+
+                statusTabs: [
+                    { key: 'all', label: 'All' },
+                    { key: 'in_progress', label: 'In Progress' },
+                    { key: 'confirmed', label: 'Confirmed' },
+                    { key: 'pending', label: 'Pending' },
+                    { key: 'completed', label: 'Completed' },
+                    { key: 'cancelled', label: 'Cancelled' },
+                ],
+
+                timeSlots: [
+                    '09:00 AM',
+                    '10:00 AM',
+                    '11:00 AM',
+                    '12:00 PM',
+                    '01:00 PM',
+                    '02:00 PM',
+                    '03:00 PM',
+                    '04:00 PM',
+                    '05:00 PM',
+                ],
+
+                form: {
+                    client_id: preselectedClient ? preselectedClient.id : null,
+                    client_name: preselectedClient ? preselectedClient.name : '',
+                    client_phone: preselectedClient ? (preselectedClient.phone_number || '') : '',
+                    client_gender: initialGender,
+                    category_id: '',
+                    service_name: firstService.name,
+                    category: firstCategory ? firstCategory.name : firstStylist.category,
+                    duration_minutes: Number(firstService.duration_minutes || 30),
+                    price: Number(firstService.price || 0),
+                    staff_id: firstStylist.id,
+                    stylist_name: firstStylist.name,
+                    booking_type: 'Walk-In',
+                    date: config.today,
+                    start_time: '10:00 AM',
+                    notes: '',
+                },
+
+                get filteredServices() {
+                    const expectedTarget = this.form.client_gender === 'male' ? 'gents' : 'ladies';
+
+                    return this.services.filter((service) => {
+                        const genderMatches =
+                            service.target_gender === expectedTarget ||
+                            service.target_gender === 'both';
+
+                        if (!genderMatches) {
+                            return false;
+                        }
+
+                        if (
+                            this.form.category_id !== '' &&
+                            this.form.category_id !== null &&
+                            this.form.category_id !== 'all' &&
+                            Number(service.category_id) !== Number(this.form.category_id)
+                        ) {
+                            return false;
+                        }
+
+                        return true;
+                    });
+                },
+
+                init() {
+                    if (this.filteredServices.length > 0) {
+                        const initialService =
+                            this.filteredServices.find((s) => s.name === this.form.service_name) ||
+                            this.filteredServices[0];
+                        this.applyServiceSelection(initialService);
+                    }
+                },
+
+                get baseFilteredWithoutStatus() {
+                    const q = this.search.trim().toLowerCase();
+
+                    return this.appointments.filter((item) => {
+                        if (this.dateFilter !== 'all' && item.date !== this.dateFilter) {
+                            return false;
+                        }
+                        if (this.stylistFilter !== 'all' && item.stylist_name !== this.stylistFilter) {
+                            return false;
+                        }
+                        if (this.categoryFilter !== 'all' && item.category !== this.categoryFilter) {
+                            return false;
+                        }
+                        if (this.genderFilter !== 'all' && item.client_gender !== this.genderFilter) {
+                            return false;
+                        }
+                        if (q !== '') {
+                            const haystack = [
+                                item.booking_code,
+                                item.client_name,
+                                item.client_phone,
+                                item.service_name,
+                                item.stylist_name,
+                                item.category,
+                            ].join(' ').toLowerCase();
+
+                            if (!haystack.includes(q)) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    });
+                },
+
+                get filteredAppointments() {
+                    if (this.statusFilter === 'all') {
+                        return this.baseFilteredWithoutStatus;
+                    }
+
+                    return this.baseFilteredWithoutStatus.filter((item) => item.status === this.statusFilter);
+                },
+
+                get stats() {
+                    const list = this.filteredAppointments;
+
+                    return {
+                        total: list.length,
+                        inProgress: list.filter((i) => i.status === 'in_progress').length,
+                        confirmed: list.filter((i) => i.status === 'confirmed').length,
+                        pending: list.filter((i) => i.status === 'pending').length,
+                        completed: list.filter((i) => i.status === 'completed').length,
+                        revenue: list
+                            .filter((i) => i.status !== 'cancelled')
+                            .reduce((sum, i) => sum + Number(i.price || 0), 0),
+                        completedRevenue: list
+                            .filter((i) => i.status === 'completed')
+                            .reduce((sum, i) => sum + Number(i.price || 0), 0),
+                    };
+                },
+
+                get hasActiveFilters() {
+                    return (
+                        this.dateFilter !== 'all' ||
+                        this.statusFilter !== 'all' ||
+                        this.stylistFilter !== 'all' ||
+                        this.categoryFilter !== 'all' ||
+                        this.genderFilter !== 'all' ||
+                        this.search.trim() !== ''
+                    );
+                },
+
+                countByStatus(statusKey) {
+                    if (statusKey === 'all') {
+                        return this.baseFilteredWithoutStatus.length;
+                    }
+
+                    return this.baseFilteredWithoutStatus.filter((item) => item.status === statusKey).length;
+                },
+
+                appointmentsForSlot(slot) {
+                    return this.filteredAppointments.filter((item) => item.hour_key === slot);
+                },
+
+                resetFilters() {
+                    this.dateFilter = 'all';
+                    this.customDate = '';
+                    this.statusFilter = 'all';
+                    this.stylistFilter = 'all';
+                    this.categoryFilter = 'all';
+                    this.genderFilter = 'all';
+                    this.search = '';
+                },
+
+                formatCurrency(amount) {
+                    return Number(amount || 0).toLocaleString('en-US');
+                },
+
+                formatDateLabel(dateStr) {
+                    if (dateStr === this.todayDate) {
+                        return 'Today';
+                    }
+                    if (dateStr === this.tomorrowDate) {
+                        return 'Tomorrow';
+                    }
+
+                    const parsed = new Date(dateStr + 'T00:00:00');
+                    if (Number.isNaN(parsed.getTime())) {
+                        return dateStr;
+                    }
+
+                    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                },
+
+                formatCustomDateLabel(dateStr) {
+                    const parsed = new Date(dateStr + 'T00:00:00');
+                    if (Number.isNaN(parsed.getTime())) {
+                        return dateStr;
+                    }
+
+                    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                },
+
+                statusLabel(status) {
+                    const labels = {
+                        in_progress: 'In Progress',
+                        confirmed: 'Confirmed',
+                        pending: 'Pending',
+                        completed: 'Completed',
+                        cancelled: 'Cancelled',
+                    };
+
+                    return labels[status] || status;
+                },
+
+                statusBadgeClass(status) {
+                    const classes = {
+                        in_progress: 'bg-blue-100 text-blue-700',
+                        confirmed: 'bg-emerald-100 text-emerald-700',
+                        pending: 'bg-amber-100 text-amber-700',
+                        completed: 'bg-indigo-100 text-indigo-700',
+                        cancelled: 'bg-red-100 text-red-700',
+                    };
+
+                    return classes[status] || 'bg-slate-100 text-slate-700';
+                },
+
+                async updateStatus(id, newStatus) {
+                    if (this.updatingBookingId === id) {
+                        return;
+                    }
+
+                    this.updatingBookingId = id;
+                    this.toastErrorMessage = '';
+
+                    try {
+                        const response = await fetch(`${this.routes.baseUrl}/${id}/status`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken,
+                            },
+                            body: JSON.stringify({ status: newStatus }),
+                        });
+
+                        if (response.status === 200) {
+                            const data = await response.json();
+                            const index = this.appointments.findIndex((item) => item.id === id);
+                            if (index !== -1) {
+                                this.appointments.splice(index, 1, data.appointment);
+                            }
+                            if (this.selectedBooking && this.selectedBooking.id === id) {
+                                this.selectedBooking = data.appointment;
+                            }
+                            this.showToast(data.message || `Booking marked as ${this.statusLabel(newStatus)}.`);
+                        } else {
+                            this.toastErrorMessage = 'Could not update booking status. Please try again.';
+                        }
+                    } catch (error) {
+                        this.toastErrorMessage = 'Network error while updating booking status.';
+                    } finally {
+                        this.updatingBookingId = null;
+                    }
+                },
+
+                categoryNameById(categoryId) {
+                    const match = this.categories.find((cat) => Number(cat.id) === Number(categoryId));
+
+                    return match ? match.name : 'Salon Service';
+                },
+
+                applyServiceSelection(service) {
+                    if (!service) {
+                        this.form.service_name = '';
+                        this.form.category = 'Salon Service';
+                        this.form.duration_minutes = 30;
+                        this.form.price = 0;
+                        return;
+                    }
+
+                    this.form.service_name = service.name;
+                    this.form.price = Number(service.price);
+                    this.form.duration_minutes = Number(service.duration_minutes);
+                    this.form.category = this.categoryNameById(service.category_id);
+
+                    if (this.isWorker && this.workerStaffId) {
+                        this.form.staff_id = this.workerStaffId;
+                        this.form.stylist_name = this.workerStaffName;
+                    } else {
+                        const matchingStylist =
+                            this.stylists.find(
+                                (st) =>
+                                    Number(st.category_id) === Number(service.category_id) &&
+                                    (st.serves_gender === 'both' || st.serves_gender === this.form.client_gender)
+                            ) ||
+                            this.stylists.find((st) => Number(st.category_id) === Number(service.category_id));
+
+                        if (matchingStylist) {
+                            this.form.staff_id = matchingStylist.id;
+                            this.form.stylist_name = matchingStylist.name;
+                        }
+                    }
+                },
+
+                openNewBookingModal(preferredSlot = null) {
+                    const defaultService = this.services[0] || firstService;
+                    const defaultStylist = (this.isWorker && this.workerStaffId)
+                        ? { id: this.workerStaffId, name: this.workerStaffName }
+                        : (this.stylists[0] || firstStylist);
+                    const defaultGender = defaultService.target_gender === 'gents' ? 'male' : 'female';
+
+                    this.modalMode = 'create';
+                    this.editingBookingId = null;
+                    this.editingBookingCode = '';
+                    this.formErrors = {};
+                    this.formErrorBanner = '';
+                    this.isLookingUpPhone = false;
+                    this.lookupRequestId++;
+
+                    Object.assign(this.form, {
+                        client_id: null,
+                        client_name: '',
+                        client_phone: '',
+                        client_gender: defaultGender,
+                        category_id: '',
+                        service_name: defaultService.name,
+                        category: this.categoryNameById(defaultService.category_id),
+                        duration_minutes: Number(defaultService.duration_minutes || 30),
+                        price: Number(defaultService.price || 0),
+                        staff_id: defaultStylist.id,
+                        stylist_name: defaultStylist.name,
+                        booking_type: 'Walk-In',
+                        date: this.dateFilter !== 'all' ? this.dateFilter : this.todayDate,
+                        start_time: preferredSlot || '10:00 AM',
+                        notes: '',
+                    });
+
+                    this.applyServiceSelection(this.filteredServices[0] || null);
+                    this.showBookingModal = true;
+                },
+
+                openEditBookingModal(booking) {
+                    this.modalMode = 'edit';
+                    this.editingBookingId = booking.id;
+                    this.editingBookingCode = booking.booking_code;
+                    this.formErrors = {};
+                    this.formErrorBanner = '';
+                    this.isLookingUpPhone = false;
+                    this.lookupRequestId++;
+
+                    const matchedService = this.services.find((s) => s.name === booking.service_name);
+                    const catId = booking.category_id || (matchedService ? matchedService.category_id : '');
+                    const assignedStaffId = (this.isWorker && this.workerStaffId)
+                        ? this.workerStaffId
+                        : booking.staff_id;
+                    const assignedStylistName = (this.isWorker && this.workerStaffName)
+                        ? this.workerStaffName
+                        : (booking.stylist_name || '');
+
+                    Object.assign(this.form, {
+                        client_id: booking.client_id || null,
+                        client_name: booking.client_name || '',
+                        client_phone: booking.client_phone || '',
+                        client_gender: booking.client_gender || 'female',
+                        category_id: catId ? String(catId) : '',
+                        service_name: booking.service_name || '',
+                        category: booking.category || '',
+                        duration_minutes: Number(booking.duration_minutes || 30),
+                        price: Number(booking.price || 0),
+                        staff_id: assignedStaffId,
+                        stylist_name: assignedStylistName,
+                        booking_type: booking.booking_type || 'Walk-In',
+                        date: booking.date,
+                        start_time: booking.start_time,
+                        notes: booking.notes || '',
+                    });
+
+                    this.showBookingModal = true;
+                },
+
+                async lookupClientByPhone() {
+                    const stripped = String(this.form.client_phone || '').replace(/[\s\-()]+/g, '');
+                    const requestId = ++this.lookupRequestId;
+
+                    if (stripped.length < 9) {
+                        if (this.form.client_id !== null) {
+                            this.form.client_id = null;
+                            this.form.client_name = '';
+                        }
+                        this.isLookingUpPhone = false;
+                        return;
+                    }
+
+                    this.isLookingUpPhone = true;
+
+                    try {
+                        const response = await fetch(
+                            `${this.routes.searchPhone}?phone=${encodeURIComponent(stripped)}`,
+                            {
+                                headers: {
+                                    'Accept': 'application/json',
+                                },
+                            }
+                        );
+
+                        if (requestId !== this.lookupRequestId) {
+                            return;
+                        }
+
+                        if (response.status === 200) {
+                            const data = await response.json();
+
+                            if (data.found && data.user) {
+                                this.form.client_id = data.user.id;
+                                this.form.client_name = data.user.name;
+
+                                if (data.user.gender === 'female' || data.user.gender === 'male') {
+                                    this.selectClientGender(data.user.gender);
+                                }
+                            } else {
+                                if (this.form.client_id !== null) {
+                                    this.form.client_id = null;
+                                    this.form.client_name = '';
+                                } else {
+                                    this.form.client_id = null;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        if (requestId === this.lookupRequestId && this.form.client_id !== null) {
+                            this.form.client_id = null;
+                            this.form.client_name = '';
+                        }
+                    } finally {
+                        if (requestId === this.lookupRequestId) {
+                            this.isLookingUpPhone = false;
+                        }
+                    }
+                },
+
+                selectClientGender(gender) {
+                    this.form.client_gender = gender;
+
+                    if (this.filteredServices.length === 0 && this.form.category_id !== '') {
+                        this.form.category_id = '';
+                    }
+
+                    const currentMatch = this.filteredServices.find((s) => s.name === this.form.service_name);
+                    this.applyServiceSelection(currentMatch || this.filteredServices[0] || null);
+                },
+
+                onCategoryFilterChange() {
+                    const currentMatch = this.filteredServices.find((s) => s.name === this.form.service_name);
+                    this.applyServiceSelection(currentMatch || this.filteredServices[0] || null);
+                },
+
+                onServiceChange() {
+                    const found =
+                        this.filteredServices.find((s) => s.name === this.form.service_name) ||
+                        this.services.find((s) => s.name === this.form.service_name);
+
+                    if (!found) {
+                        return;
+                    }
+
+                    this.applyServiceSelection(found);
+                },
+
+                onStylistChange() {
+                    const selected = this.stylists.find((st) => Number(st.id) === Number(this.form.staff_id));
+                    if (selected) {
+                        this.form.stylist_name = selected.name;
+                    }
+                },
+
+                async submitBookingForm() {
+                    if (this.isSubmitting) {
+                        return;
+                    }
+
+                    this.formErrors = {};
+                    this.formErrorBanner = '';
+                    this.isSubmitting = true;
+
+                    const isEditing = this.modalMode === 'edit' && this.editingBookingId !== null;
+                    const targetUrl = isEditing
+                        ? `${this.routes.baseUrl}/${this.editingBookingId}`
+                        : this.routes.store;
+                    const targetMethod = isEditing ? 'PUT' : 'POST';
+
+                    try {
+                        const response = await fetch(targetUrl, {
+                            method: targetMethod,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken,
+                            },
+                            body: JSON.stringify(this.form),
+                        });
+
+                        if (response.status === 200) {
+                            const data = await response.json();
+                            if (isEditing) {
+                                const index = this.appointments.findIndex((item) => item.id === this.editingBookingId);
+                                if (index !== -1) {
+                                    this.appointments.splice(index, 1, data.appointment);
+                                }
+                                if (this.selectedBooking && this.selectedBooking.id === this.editingBookingId) {
+                                    this.selectedBooking = data.appointment;
+                                }
+                            } else {
+                                this.appointments.unshift(data.appointment);
+                            }
+                            this.showBookingModal = false;
+                            this.showToast(
+                                data.message ||
+                                    (isEditing
+                                        ? `Booking ${data.appointment.booking_code} updated successfully.`
+                                        : `Booking ${data.appointment.booking_code} confirmed for ${data.appointment.client_name}.`)
+                            );
+                            return;
+                        }
+
+                        if (response.status === 422) {
+                            const errorPayload = await response.json();
+                            this.formErrors = errorPayload.errors || {};
+                            this.formErrorBanner = errorPayload.message || 'Please fix the highlighted validation errors.';
+                            return;
+                        }
+
+                        if (response.status === 403) {
+                            const errorPayload = await response.json().catch(() => ({}));
+                            this.formErrorBanner = errorPayload.message || 'You are not authorized to modify this appointment.';
+                            return;
+                        }
+
+                        this.formErrorBanner = isEditing
+                            ? 'Unable to update the appointment right now. Please try again.'
+                            : 'Unable to save the appointment right now. Please try again.';
+                    } catch (error) {
+                        this.formErrorBanner = isEditing
+                            ? 'Network error while updating the appointment.'
+                            : 'Network error while saving the appointment.';
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                // Backward-compatible alias for existing submit event handlers
+                async submitNewBooking() {
+                    return this.submitBookingForm();
+                },
+
+                showToast(message) {
+                    this.toastErrorMessage = '';
+                    this.toastMessage = message;
+                },
+            };
+        };
+    </script>
+
+    <div
+        x-data="window.createAppointmentsBoard({
+            appointments: @js($appointments),
+            services: @js($services),
+            categories: @js($categories),
+            stylists: @js($stylistsList),
+            today: @js($today),
+            tomorrow: @js($tomorrow),
+            openModalOnLoad: @js($openModalOnLoad),
+            preselectedClient: @js($preselectedClient),
+            isWorker: @js($isWorker),
+            workerStaffId: @js($workerStaff?->id),
+            workerStaffName: @js($workerStaff?->user?->name),
+            csrfToken: @js(csrf_token()),
+            routes: {
+                store: @js(route('appointments.store')),
+                baseUrl: @js(url('/appointments')),
+                searchPhone: @js(route('clients.search-phone')),
+            },
+        })"
+        @open-booking-modal.window="openNewBookingModal()"
+        @keydown.escape.window="showBookingModal = false; selectedBooking = null"
+    >
+        <!-- Success Toast Banner -->
+        <div
+            x-show="toastMessage !== ''"
+            x-transition
+            class="mb-5 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between gap-3"
+            style="display: none;"
+        >
+            <span class="truncate">✅ <span x-text="toastMessage"></span></span>
+            <button type="button" @click="toastMessage = ''" class="text-emerald-600 hover:text-emerald-900 shrink-0 cursor-pointer">✕</button>
+        </div>
+
+        <!-- Error Toast Banner -->
+        <div
+            x-show="toastErrorMessage !== ''"
+            x-transition
+            class="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 flex items-center justify-between gap-3"
+            style="display: none;"
+        >
+            <span class="truncate">⚠️ <span x-text="toastErrorMessage"></span></span>
+            <button type="button" @click="toastErrorMessage = ''" class="text-red-600 hover:text-red-900 shrink-0 cursor-pointer">✕</button>
+        </div>
+
+        @include('appointments.includes.kpi-cards')
+        @include('appointments.includes.toolbar-filters')
+        @include('appointments.includes.bookings-table')
+        @include('appointments.includes.timeline-schedule')
+        @include('appointments.includes.new-appointment-modal')
+    </div>
+@endsection

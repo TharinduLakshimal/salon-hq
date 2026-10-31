@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable(); // Required for Gmail verification feature
             $table->string('password');
-            $table->string('phone_number', 25)->nullable();
+            $table->string('phone_number', 25)->nullable()->index();
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
 
             // Access Control

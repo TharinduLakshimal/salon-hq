@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -18,7 +20,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Handle an incoming authentication request and route by workspace role.
      */
     public function login(Request $request): RedirectResponse
     {
@@ -28,9 +30,26 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            /** @var User $user */
+            $user = Auth::user();
+
+            if ($user->role === 'client') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => 'Client accounts cannot access the salon workspace.',
+                ]);
+            }
+
             $request->session()->regenerate();
 
-            return redirect()->intended(route('dashboard'));
+            if ($user->isWorker()) {
+                return redirect()->route('appointments.index');
+            }
+
+            return redirect()->route('dashboard');
         }
 
         return back()->withErrors([
@@ -51,4 +70,3 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
 }
-

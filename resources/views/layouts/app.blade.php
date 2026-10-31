@@ -11,7 +11,7 @@
         @include('includes.header')
 
         <!-- Page Body -->
-        <main class="p-6 lg:p-8">
+        <main class="p-4 sm:p-6 lg:p-8">
             @include('includes.alerts')
             @yield('content')
         </main>
