@@ -94,8 +94,8 @@
     </div>
 
     <!-- Middle Row: Search, Stylist & Department Filters -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="relative sm:col-span-2">
+    <div class="grid grid-cols-1 sm:grid-cols-2 {{ $isWorker ? 'lg:grid-cols-3' : 'lg:grid-cols-4' }} gap-3">
+        <div class="relative {{ $isWorker ? 'sm:col-span-2 lg:col-span-2' : 'sm:col-span-2' }}">
             <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -118,18 +118,20 @@
             </button>
         </div>
 
-        <div>
-            <select
-                x-model="stylistFilter"
-                aria-label="Filter by stylist"
-                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none transition cursor-pointer"
-            >
-                <option value="all">All Stylists & Barbers</option>
-                @foreach ($stylistsList as $stylist)
-                    <option value="{{ $stylist['name'] }}">{{ $stylist['name'] }} ({{ $stylist['category'] }})</option>
-                @endforeach
-            </select>
-        </div>
+        @if (! $isWorker)
+            <div>
+                <select
+                    x-model="stylistFilter"
+                    aria-label="Filter by stylist"
+                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none transition cursor-pointer"
+                >
+                    <option value="all">All Stylists & Barbers</option>
+                    @foreach ($stylistsList as $stylist)
+                        <option value="{{ $stylist['name'] }}">{{ $stylist['name'] }} ({{ $stylist['category'] }})</option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
 
         <div>
             <select

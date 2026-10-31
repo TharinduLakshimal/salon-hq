@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\Staff;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,11 +16,17 @@ use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display the salon appointments management UI backed by real MySQL records.
      */
     public function index(Request $request): View
     {
+        $user = auth()->user();
+        $isWorker = $user?->isWorker() ?? false;
+        $workerStaff = $isWorker ? $user?->staffProfile : null;
+
         $staffMembers = Staff::with(['user', 'category'])->orderBy('id')->get();
         $stylistsList = $staffMembers->map(fn (Staff $member): array => [
             'id' => $member->id,
@@ -34,8 +41,14 @@ class AppointmentController extends Controller
         $today = now()->toDateString();
         $tomorrow = now()->addDay()->toDateString();
 
-        $appointments = Appointment::with(['client', 'staff.user', 'category'])
-            ->whereDate('appointment_date', '>=', now()->startOfWeek())
+        $appointmentsQuery = Appointment::with(['client', 'staff.user', 'category'])
+            ->whereDate('appointment_date', '>=', now()->startOfWeek());
+
+        if ($isWorker) {
+            $appointmentsQuery->where('staff_id', $workerStaff?->id ?? 0);
+        }
+
+        $appointments = $appointmentsQuery
             ->orderBy('appointment_date')
             ->orderBy('start_time')
             ->get()
@@ -75,7 +88,9 @@ class AppointmentController extends Controller
             'today',
             'tomorrow',
             'openModalOnLoad',
-            'preselectedClient'
+            'preselectedClient',
+            'isWorker',
+            'workerStaff'
         ));
     }
 
@@ -84,6 +99,14 @@ class AppointmentController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        if (auth()->user()?->isWorker()) {
+            $workerStaff = auth()->user()->staffProfile;
+            if (! $workerStaff) {
+                return response()->json(['message' => 'Worker staff profile not found.'], 403);
+            }
+            $request->merge(['staff_id' => $workerStaff->id]);
+        }
+
         $request->merge([
             'client_phone' => preg_replace('/[\s\-()]+/', '', (string) $request->input('client_phone')),
         ]);
@@ -169,6 +192,96 @@ class AppointmentController extends Controller
     }
 
     /**
+     * Update an existing appointment record (authorized via AppointmentPolicy).
+     */
+    public function update(Request $request, Appointment $appointment): JsonResponse
+    {
+        $this->authorize('update', $appointment);
+
+        if (auth()->user()?->isWorker()) {
+            $workerStaff = auth()->user()->staffProfile;
+            if (! $workerStaff) {
+                return response()->json(['message' => 'Worker staff profile not found.'], 403);
+            }
+            $request->merge(['staff_id' => $workerStaff->id]);
+        }
+
+        $request->merge([
+            'client_phone' => preg_replace('/[\s\-()]+/', '', (string) $request->input('client_phone')),
+        ]);
+
+        $validated = $request->validate([
+            'client_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'client_name' => ['required', 'string', 'max:150'],
+            'client_phone' => ['required', 'string', 'regex:/^(?:\+94|0)7\d{8}$/'],
+            'client_gender' => ['required', Rule::in(['female', 'male', 'other'])],
+            'staff_id' => ['required', 'integer', Rule::exists('staff', 'id')],
+            'service_name' => ['required', 'string', 'max:150'],
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')],
+            'category' => ['nullable', 'string', 'max:80'],
+            'duration_minutes' => ['required', 'integer', 'min:5', 'max:600'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'booking_type' => ['required', Rule::in([
+                'walk_in',
+                'phone_desk',
+                'online_booking',
+                'Walk-In',
+                'Phone Desk',
+                'Online Booking',
+            ])],
+            'date' => ['required', 'date'],
+            'start_time' => ['required', 'string', 'regex:/^(?:\d{1,2}:\d{2}\s*(?:AM|PM)|\d{2}:\d{2}(?::\d{2})?)$/i'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $staff = Staff::with(['user', 'category'])->findOrFail($validated['staff_id']);
+
+        $clientUser = ! empty($validated['client_id'])
+            ? User::find($validated['client_id'])
+            : null;
+
+        $categoryId = ! empty($validated['category_id'])
+            ? (int) $validated['category_id']
+            : (! empty($validated['category'])
+                ? Category::where('name', $validated['category'])->value('id')
+                : null);
+
+        $normalizedBookingType = match ($validated['booking_type']) {
+            'Online Booking', 'online_booking' => 'online_booking',
+            'Phone Desk', 'phone_desk' => 'phone_desk',
+            default => 'walk_in',
+        };
+
+        $parsedStart = Carbon::parse($validated['start_time']);
+        $durationMinutes = (int) $validated['duration_minutes'];
+        $parsedEnd = $parsedStart->copy()->addMinutes($durationMinutes);
+
+        $appointment->update([
+            'client_id' => $clientUser?->id,
+            'staff_id' => $staff->id,
+            'category_id' => $categoryId ?? $staff->category_id,
+            'client_name' => $clientUser?->name ?? trim($validated['client_name']),
+            'client_phone' => $validated['client_phone'],
+            'client_gender' => $validated['client_gender'],
+            'booking_type' => $normalizedBookingType,
+            'service_name' => $validated['service_name'],
+            'duration_minutes' => $durationMinutes,
+            'appointment_date' => $validated['date'],
+            'start_time' => $parsedStart->format('H:i:s'),
+            'end_time' => $parsedEnd->format('H:i:s'),
+            'price' => $validated['price'],
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        $appointment->load(['client', 'staff.user', 'category']);
+
+        return response()->json([
+            'message' => "Booking {$appointment->booking_code} updated successfully.",
+            'appointment' => $this->formatAppointment($appointment),
+        ], 200);
+    }
+
+    /**
      * Update an existing appointment's lifecycle status and return JSON.
      */
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
@@ -205,6 +318,7 @@ class AppointmentController extends Controller
             'client_gender' => $appointment->client_gender,
             'booking_type' => $appointment->booking_type_label,
             'service_name' => $appointment->service_name,
+            'category_id' => $appointment->category_id,
             'category' => $appointment->category?->name ?? $appointment->staff?->category?->name ?? 'Hair Stylists',
             'duration_minutes' => (int) $appointment->duration_minutes,
             'staff_id' => $appointment->staff_id,

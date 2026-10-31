@@ -159,6 +159,15 @@
 
                                 <button
                                     type="button"
+                                    @click="openEditBookingModal(booking)"
+                                    title="Edit appointment"
+                                    class="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-600 text-indigo-700 hover:text-white text-xs font-semibold transition cursor-pointer"
+                                >
+                                    Edit
+                                </button>
+
+                                <button
+                                    type="button"
                                     @click="selectedBooking = booking"
                                     title="View appointment details"
                                     class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition cursor-pointer"

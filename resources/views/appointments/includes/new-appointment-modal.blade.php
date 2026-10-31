@@ -9,8 +9,8 @@
     <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
         <div class="px-5 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div>
-                <h2 class="text-base sm:text-lg font-bold text-slate-900">Book New Appointment</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Enter mobile number to auto-match a registered client or book a walk-in guest.</p>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900" x-text="modalMode === 'edit' ? ('Edit Appointment • ' + editingBookingCode) : 'Book New Appointment'">Book New Appointment</h2>
+                <p class="text-xs text-slate-500 mt-0.5" x-text="modalMode === 'edit' ? 'Update client details, assigned service, date, or appointment notes.' : 'Enter mobile number to auto-match a registered client or book a walk-in guest.'">Enter mobile number to auto-match a registered client or book a walk-in guest.</p>
             </div>
             <button
                 type="button"
@@ -22,7 +22,7 @@
             </button>
         </div>
 
-        <form @submit.prevent="submitNewBooking()" class="flex flex-col overflow-hidden">
+        <form @submit.prevent="submitBookingForm()" class="flex flex-col overflow-hidden">
             <input type="hidden" name="client_id" :value="form.client_id ?? ''">
 
             <div class="p-5 sm:p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -195,6 +195,12 @@
                                     x-text="service.name + ' - Rs. ' + formatCurrency(service.price) + (service.is_package ? ' (Package)' : '')"
                                 ></option>
                             </template>
+                            <option
+                                :value="form.service_name"
+                                x-show="form.service_name && !filteredServices.some(s => s.name === form.service_name)"
+                                x-text="form.service_name + ' (Selected)'"
+                                selected
+                            ></option>
                         </select>
                         <p
                             x-show="formErrors.service_name"
@@ -207,18 +213,30 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Assigned Stylist / Barber *</label>
-                    <select
-                        x-model.number="form.staff_id"
-                        @change="onStylistChange()"
-                        required
-                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
-                    >
-                        @forelse ($stylistsList as $stylist)
-                            <option value="{{ $stylist['id'] }}">{{ $stylist['name'] }} ({{ $stylist['category'] }})</option>
-                        @empty
-                            <option value="">No stylists available</option>
-                        @endforelse
-                    </select>
+                    @if ($isWorker)
+                        <select
+                            x-model.number="form.staff_id"
+                            disabled
+                            aria-label="Assigned stylist (assigned to you)"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2 text-sm text-slate-700 font-medium cursor-not-allowed focus:outline-none"
+                        >
+                            <option value="{{ $workerStaff?->id }}" selected>{{ $workerStaff?->user?->name ?? 'You (Stylist)' }}</option>
+                        </select>
+                        <input type="hidden" name="staff_id" :value="form.staff_id">
+                    @else
+                        <select
+                            x-model.number="form.staff_id"
+                            @change="onStylistChange()"
+                            required
+                            class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:border-indigo-600 focus:ring-3 focus:ring-indigo-500/15 focus:outline-none"
+                        >
+                            @forelse ($stylistsList as $stylist)
+                                <option value="{{ $stylist['id'] }}">{{ $stylist['name'] }} ({{ $stylist['category'] }})</option>
+                            @empty
+                                <option value="">No stylists available</option>
+                            @endforelse
+                        </select>
+                    @endif
                     <p
                         x-show="formErrors.staff_id"
                         class="mt-1 text-xs text-red-600 font-medium"
@@ -314,7 +332,7 @@
                     :disabled="isSubmitting || stylists.length === 0 || !form.service_name"
                     class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-xs font-semibold text-white shadow-sm shadow-indigo-600/20 cursor-pointer"
                 >
-                    <span x-text="isSubmitting ? 'Saving Booking...' : 'Confirm Appointment'">Confirm Appointment</span>
+                    <span x-text="isSubmitting ? (modalMode === 'edit' ? 'Updating Booking...' : 'Saving Booking...') : (modalMode === 'edit' ? 'Update Appointment' : 'Confirm Appointment')">Confirm Appointment</span>
                 </button>
             </div>
         </form>
@@ -436,6 +454,20 @@
                             Cancel
                         </button>
                     </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100">
+                    <button
+                        type="button"
+                        @click="const b = selectedBooking; selectedBooking = null; openEditBookingModal(b)"
+                        class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white transition cursor-pointer"
+                    >
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span>Edit Full Booking Details</span>
+                    </button>
                 </div>
             </div>
         </div>
