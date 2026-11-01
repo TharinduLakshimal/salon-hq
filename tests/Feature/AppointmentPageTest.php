@@ -140,7 +140,7 @@ class AppointmentPageTest extends TestCase
         $this->seed(AppointmentSeeder::class);
         $this->seed(AppointmentSeeder::class);
 
-        $this->assertDatabaseCount('appointments', 16);
+        $this->assertDatabaseCount('appointments', 17);
         $this->assertDatabaseHas('appointments', [
             'booking_code' => 'BK-2026-0101',
             'client_name' => 'Nethmi Perera',
