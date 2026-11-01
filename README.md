@@ -108,6 +108,7 @@ All seeded accounts use the password: **`password`**
 | **Owner (Admin)** | Test Admin | `test@example.com` | `password` | Full Admin Access |
 | **Worker** | Kavindi Senanayake | `kavindi@salonhq.com` | `password` | ♀ Female Only (Bridal & Makeup) |
 | **Worker** | Roshan Mendis | `roshan@salonhq.com` | `password` | ♂ Male Only (Master Barber) |
+| **Worker** | Dinesh Perera | `dinesh@salonhq.com` | `password` | ♂ Male Only (Senior Barber) |
 | **Worker** | Amaya Jayawardena | `amaya@salonhq.com` | `password` | ⚥ Both Unisex (Hair Color & Keratin) |
 | **Worker** | Nadeesha Karunaratne | `nadeesha@salonhq.com` | `password` | ⚥ Both Unisex (Esthetician) |
 | **Worker** | Shenal Wickramasinghe | `shenal@salonhq.com` | `password` | ⚥ Both Unisex (Hair Stylist) |
@@ -122,28 +123,87 @@ php artisan migrate:fresh --seed
 
 ---
 
-## ✅ Current Project Progress
+## ✅ Current Project Progress & Architecture
 
-### Completed Features
-- [x] **Central Users Table & Seeder** (`database/migrations/0001_01_01_000000_create_users_table.php`, `UserSeeder.php`)
-  - Supports `owner`, `worker`, and `client` roles, `gender`, `phone_number`, and email verification timestamp.
-- [x] **Authentication System** (`AuthController.php`, `resources/views/auth/login.blade.php`)
-  - Clean Tailwind CSS v4 login page, session regeneration, and logout protection.
-- [x] **Master Admin Layout & Reusable Sidebar** (`resources/views/layouts/app.blade.php`, `resources/views/components/sidebar.blade.php`)
-  - Responsive sidebar with Alpine.js mobile drawer toggle and instant `wire:navigate` page transitions.
-- [x] **Admin Overview Dashboard (`/dashboard`)**
-  - KPI stat cards, Today's Appointments table, Quick Actions grid, and a **Livewire Stylist Status Widget** (`StylistStatusWidget.php`) that lets admins toggle staff availability (`Available` → `In Session` → `On Break`) in MySQL with 1 click.
-- [x] **Unisex Staff & Stylists Management (`/staff`)**
-  - Database migration (`staff` and `staff_works` tables), Eloquent models (`Staff`, `StaffWork`), and `StaffSeeder`.
-  - **Livewire Staff Directory** (`StaffDirectory.php`): Real-time search and filtering by Department (`Bridal & Makeup`, `Hair Stylists`, `Barbers`, `Estheticians & Nails`) and Unisex Client Gender (`⚥ Both`, `♀ Female Only`, `♂ Male Only`).
-  - **Livewire + Alpine.js Add Staff Modal**: Create new staff members and save directly to MySQL without page reloads.
-- [x] **Individual Staff Profile & Portfolio Works Page (`/staff/{id}`)**
-  - Displays stylist bio, contact info, working hours, performance KPIs, and completed portfolio works with Alpine.js tabs.
+### Completed Core Features
 
-### Upcoming Modules (To Be Built Next)
-- [ ] **Services & Pricing Management** (Male, Female & Unisex service catalog)
-- [ ] **Appointments & Booking Calendar**
-- [ ] **Clients / Customer Management**
-- [ ] **Inventory & Salon Products**
-- [ ] **POS & Billing / Invoicing**
-- [ ] **Reports & Analytics**
+- [x] **Central Users & Multi-Role Authentication** (`AuthController.php`, `User.php`)
+  - Universal login supporting `owner`, `worker`, and `client` roles with role-based routing.
+  - Owners route to `/dashboard`, Workers route to `/appointments`, Clients route to `/my-dashboard`.
+  - Secure phone number normalization (supports local `07X` and international `+94` formats).
+
+- [x] **Dynamic Owner Dashboard (`/dashboard`)** (`DashboardController.php`, `resources/views/dashboard.blade.php`)
+  - Real-time calculations: today's revenue, active appointments count, completed works, and pending requests.
+  - Live daily appointment schedule feed ordered chronologically with client and stylist relations.
+  - **Livewire Stylist Status Widget**: Instant staff status toggling (`Available` ↔ `In Session` ↔ `On Break` ↔ `Off Duty`).
+
+- [x] **Unisex Staff & Stylists Management (`/staff`, `/staff/{id}`)** (`StaffController.php`, `StaffDirectory.php`)
+  - Department categorization (`Bridal & Makeup`, `Hair Stylists`, `Barbers`, `Estheticians & Nails`).
+  - Unisex client gender filtering (`Both`, `Female Only`, `Male Only`).
+  - Modal-based staff creation, editing, and profile pages with performance metrics and portfolio works.
+
+- [x] **Worker Portal & Profile Management (`/my-profile`, `/appointments`)** (`WorkerProfileController.php`)
+  - Securely scopes workers strictly to their assigned appointments.
+  - Allows stylists to update personal info, phone, bio, specialties, password, and instant availability status.
+  - Protects sensitive financial configurations (commission rates, category, job title) from unauthorized changes.
+
+- [x] **Services & Pricing Catalog (`/services`)** (`ServiceController.php`)
+  - Department-scoped service catalog with pricing, duration in minutes, and package designations.
+  - Target gender tagging (`ladies`, `gents`, `both`).
+  - Full CRUD operations with modal interfaces and validation.
+
+- [x] **Appointments & Scheduling Management (`/appointments`)** (`AppointmentController.php`)
+  - Unified booking lifecycle (`pending`, `confirmed`, `in_progress`, `completed`, `cancelled`).
+  - Unique sequential booking codes (`BK-YYYY-XXXX`).
+  - Real-time status update workflow with POS integration.
+  - Client phone number auto-lookup (`/clients/search-phone`) for rapid walk-in and phone desk bookings.
+
+- [x] **Point of Sale (POS) & Automated Staff Metrics** (`AppointmentObserver.php`, `AppServiceProvider.php`)
+  - Eloquent model observer listening to appointment lifecycle changes.
+  - Automatically increments assigned stylist's `completed_works` and adds appointment price to `monthly_revenue` upon status completion.
+
+- [x] **Client CRM & Visit History (`/clients`, `/clients/{id}`)** (`ClientController.php`)
+  - Real-time aggregation of `total_visits` and `total_spend` on completed appointments using Eloquent `withCount` and `withSum`.
+  - Detailed client dossier displaying full appointment history, past treatments, assigned stylists, and spend receipts.
+
+- [x] **Dedicated Client Portal (`/my-dashboard`)** (`ClientAreaController.php`)
+  - Customer-facing dashboard for registered clients to track active reservations, review booking codes, and inspect service history.
+
+- [x] **Public Online Booking Portal (`/book`)** (`PublicBookingController.php`, `resources/views/public/booking.blade.php`)
+  - Responsive, multi-step customer booking flow powered by Alpine.js and Livewire assets.
+  - **Gender-Tailored Service Filtering:** Choose `Ladies`, `Gents`, or `All` at Step 1 to instantly filter haircuts and treatments with live category count badges.
+  - **Dynamic Barber Time Slot Availability:** Checks database appointments specifically for the selected stylist and date; automatically strikes through booked slots and auto-selects available slots.
+  - **Real-Time Availability API (`GET /book/availability`):** Asynchronously synchronizes slot states when switching dates or barbers.
+  - **Anti-Double-Booking Protection:** Server-side interval collision checks prevent race conditions and overlapping bookings.
+  - **Instant Guest Onboarding:** Automatically generates or links client user profiles on checkout without requiring pre-registration.
+
+---
+
+## 🧪 Testing Suite
+
+This project includes feature and unit test coverage across all domain areas using PHPUnit:
+
+```bash
+# Run all tests
+php artisan test
+
+# Run tests with compact summary
+php artisan test --compact
+
+# Run specific domain test suites
+php artisan test --filter=PublicBookingTest
+php artisan test --filter=AppointmentCheckoutTest
+php artisan test --filter=ClientManagementTest
+php artisan test --filter=DashboardTest
+php artisan test --filter=WorkerPortalTest
+```
+
+**Test Status:** 70/70 passing tests (358 assertions).
+
+---
+
+## 🗺️ Upcoming Modules
+
+- [ ] **Inventory & Salon Products Management** (Product stock, supplier tracking, and retail checkout)
+- [ ] **SMS & WhatsApp Booking Confirmations** (Automated appointment reminders and status alerts)
+- [ ] **Advanced Financial Reports & Commission Payouts** (Daily cash reconciliation, staff commission settlements, and tax exports)
