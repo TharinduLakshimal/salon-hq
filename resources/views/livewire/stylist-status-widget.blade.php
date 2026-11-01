@@ -7,7 +7,7 @@
         <a href="{{ route('staff.index') }}" wire:navigate class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Manage</a>
     </div>
     <div class="p-5 flex flex-col gap-4">
-        @foreach ($staffMembers as $member)
+        @forelse ($staffMembers as $member)
             <div wire:key="dash-staff-{{ $member->id }}" class="flex items-center justify-between gap-3">
                 <a href="{{ route('staff.show', $member->id) }}" wire:navigate class="flex items-center gap-3 min-w-0 group">
                     <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style="background: {{ $member->avatar_gradient }}">
@@ -20,7 +20,11 @@
                 </a>
                 @include('includes.staff-badges', ['staff' => $member, 'type' => 'status-button'])
             </div>
-        @endforeach
+        @empty
+            <div class="text-center py-6 text-xs text-slate-500">
+                No stylists registered yet.
+            </div>
+        @endforelse
     </div>
 </div>
 

@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -33,17 +32,11 @@ class AuthController extends Controller
             /** @var User $user */
             $user = Auth::user();
 
-            if ($user->role === 'client') {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-
-                throw ValidationException::withMessages([
-                    'email' => 'Client accounts cannot access the salon workspace.',
-                ]);
-            }
-
             $request->session()->regenerate();
+
+            if ($user->isClient()) {
+                return redirect()->route('client.dashboard');
+            }
 
             if ($user->isWorker()) {
                 return redirect()->route('appointments.index');

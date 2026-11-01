@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Appointment;
 use App\Models\Category;
 use App\Models\Staff;
-use App\Models\StaffWork;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -49,17 +49,17 @@ class ClientPageTest extends TestCase
             'role' => 'client',
         ]);
 
-        StaffWork::create([
+        Appointment::factory()->create([
+            'client_id' => $clientUser->id,
             'staff_id' => $staff->id,
             'category_id' => $category->id,
-            'title' => 'Bridal HD Airbrush Package',
-            'client_name' => 'Senuri Perera',
-            'performed_date' => 'Oct 28, 2026',
+            'service_name' => 'Bridal HD Airbrush Package',
+            'appointment_date' => '2026-10-28',
+            'start_time' => '10:00',
+            'end_time' => '13:00',
             'duration_minutes' => 180,
             'price' => 30000.00,
-            'rating' => 5.0,
-            'accent_color' => '#6366f1',
-            'description' => 'Bridal hair and makeup.',
+            'status' => 'completed',
         ]);
 
         $response = $this->actingAs($owner)->get(route('clients.index'));
@@ -67,14 +67,16 @@ class ClientPageTest extends TestCase
         $response->assertViewIs('clients.index');
         $response->assertSee('Senuri Perera');
         $response->assertSee('Bridal HD Airbrush Package');
-        $response->assertViewHas('clients', function (array $clients) use ($clientUser): bool {
-            return count($clients) === 1
-                && $clients[0]['id'] === $clientUser->id
-                && $clients[0]['total_visits'] === 1
-                && $clients[0]['total_spent'] === 30000.0
-                && $clients[0]['loyalty_points'] === 600
-                && $clients[0]['membership_tier'] === 'VIP Platinum'
-                && $clients[0]['preferred_stylist'] === 'Kavindi Senanayake';
+        $response->assertViewHas('clients', function ($clients) use ($clientUser): bool {
+            $client = $clients->first();
+
+            return $clients->count() === 1
+                && $client->id === $clientUser->id
+                && (int) $client->total_visits === 1
+                && (float) $client->total_spent === 30000.0
+                && (int) $client->loyalty_points === 600
+                && $client->membership_tier === 'VIP Platinum'
+                && $client->preferred_stylist === 'Kavindi Senanayake';
         });
     }
 

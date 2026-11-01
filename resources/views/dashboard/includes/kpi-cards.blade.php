@@ -3,8 +3,10 @@
     <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between shadow-2xs">
         <div>
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Today's Bookings</div>
-            <div class="text-3xl font-bold text-slate-900 my-1.5">18</div>
-            <div class="text-xs font-medium text-emerald-600">+14% vs yesterday</div>
+            <div class="text-3xl font-bold text-slate-900 my-1.5">{{ $todayAppointmentsCount }}</div>
+            <div class="text-xs font-medium text-indigo-600">
+                {{ $todayCompletedAppointmentsCount }} completed today
+            </div>
         </div>
         <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <svg class="w-5.5 h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -19,8 +21,8 @@
     <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between shadow-2xs">
         <div>
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Today's Revenue</div>
-            <div class="text-3xl font-bold text-slate-900 my-1.5">Rs. 48,500</div>
-            <div class="text-xs font-medium text-emerald-600">+8.2% vs last week</div>
+            <div class="text-3xl font-bold text-slate-900 my-1.5">Rs. {{ number_format($todayExpectedRevenue, 0) }}</div>
+            <div class="text-xs font-medium text-emerald-600">Expected total earnings</div>
         </div>
         <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <svg class="w-5.5 h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -32,16 +34,20 @@
 
     <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between shadow-2xs">
         <div>
-            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Clients</div>
-            <div class="text-3xl font-bold text-slate-900 my-1.5">342</div>
-            <div class="text-xs font-medium text-emerald-600">+24 new this month</div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Completed Sessions</div>
+            <div class="text-3xl font-bold text-slate-900 my-1.5">{{ $todayCompletedAppointmentsCount }}</div>
+            <div class="text-xs font-medium text-amber-600">
+                @if ($todayAppointmentsCount > 0)
+                    {{ round(($todayCompletedAppointmentsCount / $todayAppointmentsCount) * 100) }}% completion rate
+                @else
+                    No sessions scheduled yet
+                @endif
+            </div>
         </div>
         <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
             <svg class="w-5.5 h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
         </div>
     </div>
@@ -50,7 +56,7 @@
         <div>
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Staff on Duty</div>
             <div class="text-3xl font-bold text-slate-900 my-1.5">{{ $staffMembers->count() }}</div>
-            <div class="text-xs font-medium text-slate-500">Unisex salon team</div>
+            <div class="text-xs font-medium text-slate-500">{{ $availableStaffCount }} available right now</div>
         </div>
         <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
             <svg class="w-5.5 h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -62,4 +68,3 @@
         </div>
     </div>
 </div>
-

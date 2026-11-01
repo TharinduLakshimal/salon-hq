@@ -116,7 +116,7 @@ class WorkerPortalTest extends TestCase
         $this->assertAuthenticatedAs($owner);
     }
 
-    public function test_client_login_is_rejected_from_workspace_and_logged_out(): void
+    public function test_client_login_redirects_to_client_dashboard(): void
     {
         $client = User::factory()->create([
             'email' => 'client@salonhq.com',
@@ -129,11 +129,8 @@ class WorkerPortalTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHasErrors([
-            'email' => 'Client accounts cannot access the salon workspace.',
-        ]);
-        $this->assertGuest();
+        $response->assertRedirect(route('client.dashboard'));
+        $this->assertAuthenticatedAs($client);
     }
 
     public function test_worker_is_forbidden_from_owner_routes(): void

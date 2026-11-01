@@ -7,7 +7,7 @@
         <div class="text-center mb-7">
             @include('includes.brand-logo')
             <h1 class="text-2xl font-bold text-slate-900">Salon HQ</h1>
-            <p class="text-sm text-slate-500 mt-1">Sign in to your admin account</p>
+            <p class="text-sm text-slate-500 mt-1">Sign in to your account</p>
         </div>
 
         @if ($errors->any())
