@@ -38,12 +38,12 @@
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         @include('dashboard.includes.today-appointments')
 
-        <!-- Right Column: Quick Actions & Livewire Stylist Status -->
+        <!-- Right Column: Quick Actions & Stylist Status -->
         <div class="flex flex-col gap-6">
             @include('dashboard.includes.quick-actions')
 
-            <!-- Livewire Stylist Status Component -->
-            <livewire:stylist-status-widget />
+            <!-- Stylist Status Component -->
+            @include('dashboard.includes.stylist-status')
         </div>
     </div>
 @endsection
