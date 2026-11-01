@@ -5,5 +5,8 @@
     <title>@hasSection('title')@yield('title')@else{{ $title ?? 'Admin Panel' }}@endif - {{ config('app.name', 'Salon HQ') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 
