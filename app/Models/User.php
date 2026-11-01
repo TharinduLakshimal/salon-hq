@@ -62,6 +62,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check whether this user is a registered salon client.
+     */
+    public function isClient(): bool
+    {
+        return $this->role === 'client';
+    }
+
+    /**
      * Staff profile if this user has role = 'worker'.
      */
     public function staffProfile(): HasOne

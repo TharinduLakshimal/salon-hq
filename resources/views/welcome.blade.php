@@ -19,28 +19,30 @@
         </p>
 
         <div class="flex flex-col gap-3">
+            <a
+                href="{{ route('booking.index') }}"
+                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm py-3 px-4 shadow-md shadow-indigo-600/20 transition"
+            >
+                <span>Book an Appointment</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+
             @auth
                 <a
-                    href="{{ route('dashboard') }}"
-                    class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm py-3 px-4 shadow-md shadow-indigo-600/20 transition"
+                    href="{{ auth()->user()->isClient() ? route('client.dashboard') : (auth()->user()->isWorker() ? route('appointments.index') : route('dashboard')) }}"
+                    class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm py-3 px-4 transition"
                 >
-                    <span>Go to Dashboard</span>
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
+                    <span>My Account</span>
                 </a>
             @else
                 <a
                     href="{{ route('login') }}"
-                    class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm py-3 px-4 shadow-md shadow-indigo-600/20 transition"
+                    class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm py-3 px-4 transition"
                 >
-                    <span>Login to Salon HQ</span>
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                        <polyline points="10 17 15 12 10 7"></polyline>
-                        <line x1="15" y1="12" x2="3" y2="12"></line>
-                    </svg>
+                    <span>Login</span>
                 </a>
             @endauth
         </div>
