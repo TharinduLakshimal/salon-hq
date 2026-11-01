@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use App\Models\Staff;
-use App\Models\StaffWork;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,11 +25,6 @@ class ClientController extends Controller
             'serves_gender' => $member->serves_gender ?? 'both',
         ])->values()->all();
 
-        $worksByClientName = StaffWork::with('staff.user')
-            ->latest('id')
-            ->get()
-            ->groupBy(fn (StaffWork $work): string => strtolower(trim($work->client_name)));
-
         $gradients = [
             'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
             'linear-gradient(135deg, #ec4899 0%, #e11d48 100%)',
@@ -40,67 +35,67 @@ class ClientController extends Controller
             'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
         ];
 
-        $clientUsers = User::query()
-            ->where('role', 'client')
+        $clients = User::where('role', 'client')
+            ->withCount(['appointments as total_visits' => fn ($query) => $query->where('status', 'completed')])
+            ->withSum(['appointments as total_spend' => fn ($query) => $query->where('status', 'completed')], 'price')
+            ->with(['appointments' => fn ($query) => $query->orderByDesc('appointment_date')->orderByDesc('start_time')->with(['staff.user', 'category'])])
             ->orderByDesc('id')
             ->get();
 
-        $clients = $clientUsers->map(function (User $clientUser) use ($worksByClientName, $gradients): array {
-            $lookupKey = strtolower(trim($clientUser->name));
-            $clientWorks = $worksByClientName->get($lookupKey, collect());
-
-            $totalVisits = $clientWorks->count();
-            $totalSpent = (float) $clientWorks->sum('price');
-            $loyaltyPoints = (int) floor($totalSpent / 50);
+        $clients->each(function (User $client) use ($gradients): void {
+            $totalVisits = (int) ($client->total_visits ?? 0);
+            $totalSpend = (float) ($client->total_spend ?? 0);
+            $loyaltyPoints = (int) floor($totalSpend / 50);
 
             $membershipTier = match (true) {
-                $totalSpent >= 25000 => 'VIP Platinum',
-                $totalSpent >= 10000 => 'Gold Member',
+                $totalSpend >= 25000 => 'VIP Platinum',
+                $totalSpend >= 10000 => 'Gold Member',
                 $totalVisits >= 1 => 'Regular',
                 default => 'New Client',
             };
 
-            /** @var StaffWork|null $latestWork */
-            $latestWork = $clientWorks->first();
-            $preferredStylist = $latestWork?->staff?->user?->name ?? 'Any Available Stylist';
+            /** @var Appointment|null $latestAppointment */
+            $latestAppointment = $client->appointments->first();
+            $preferredStylist = $latestAppointment?->staff?->user?->name ?? 'Any Available Stylist';
 
-            $nameParts = preg_split('/\s+/', trim($clientUser->name)) ?: [];
+            $nameParts = preg_split('/\s+/', trim($client->name)) ?: [];
             $initials = '';
             foreach (array_slice($nameParts, 0, 2) as $part) {
                 $initials .= strtoupper(substr($part, 0, 1));
             }
 
-            $year = $clientUser->created_at?->format('Y') ?? now()->format('Y');
+            $year = $client->created_at?->format('Y') ?? now()->format('Y');
 
-            return [
-                'id' => $clientUser->id,
-                'client_code' => sprintf('CL-%s-%04d', $year, $clientUser->id),
-                'name' => $clientUser->name,
-                'email' => $clientUser->email,
-                'phone_number' => $clientUser->phone_number ?: 'Not provided',
-                'raw_phone_number' => $clientUser->phone_number ?? '',
-                'gender' => $clientUser->gender ?: 'female',
-                'joined_date' => $clientUser->created_at?->format('M d, Y') ?? 'Recently',
-                'email_verified' => $clientUser->email_verified_at !== null,
-                'preferred_stylist' => $preferredStylist,
-                'membership_tier' => $membershipTier,
-                'loyalty_points' => $loyaltyPoints,
-                'total_visits' => $totalVisits,
-                'total_spent' => $totalSpent,
-                'last_visit' => $latestWork?->performed_date ?? 'No visits yet',
-                'latest_service_summary' => $latestWork
-                    ? "{$latestWork->title} ({$latestWork->performed_date})"
-                    : 'Registered in database — ready for first salon appointment.',
-                'avatar_initials' => $initials ?: 'CL',
-                'avatar_gradient' => $gradients[$clientUser->id % count($gradients)],
-                'recent_services' => $clientWorks->map(fn (StaffWork $work): array => [
-                    'service' => $work->title,
-                    'date' => $work->performed_date,
-                    'amount' => (float) $work->price,
-                    'stylist' => $work->staff?->user?->name ?? 'Salon Stylist',
-                ])->values()->all(),
-            ];
-        })->values()->all();
+            $client->setAttribute('total_spent', $totalSpend);
+            $client->setAttribute('total_spend', $totalSpend);
+            $client->setAttribute('total_visits', $totalVisits);
+            $client->setAttribute('loyalty_points', $loyaltyPoints);
+            $client->setAttribute('membership_tier', $membershipTier);
+            $client->setAttribute('client_code', sprintf('CL-%s-%04d', $year, $client->id));
+            $client->setAttribute('raw_phone_number', $client->phone_number ?? '');
+            $client->setAttribute('joined_date', $client->created_at?->format('M d, Y') ?? 'Recently');
+            $client->setAttribute('email_verified', $client->email_verified_at !== null);
+            $client->setAttribute('preferred_stylist', $preferredStylist);
+            $client->setAttribute('avatar_initials', $initials ?: 'CL');
+            $client->setAttribute('avatar_gradient', $gradients[$client->id % count($gradients)]);
+            $client->setAttribute('last_visit', $latestAppointment?->appointment_date?->format('M d, Y') ?? 'No visits yet');
+            $client->setAttribute(
+                'latest_service_summary',
+                $latestAppointment
+                    ? "{$latestAppointment->service_name} ({$latestAppointment->appointment_date?->format('M d, Y')})"
+                    : 'Registered in database — ready for first salon appointment.'
+            );
+            $client->setAttribute(
+                'recent_services',
+                $client->appointments->map(fn (Appointment $apt): array => [
+                    'service' => $apt->service_name,
+                    'date' => $apt->appointment_date?->format('M d, Y') ?? '',
+                    'amount' => (float) $apt->price,
+                    'stylist' => $apt->staff?->user?->name ?? 'Salon Stylist',
+                    'status' => $apt->status,
+                ])->values()->all()
+            );
+        });
 
         $openModalOnLoad = $request->boolean('new');
         $isOwner = $request->user()?->isOwner() ?? false;
@@ -111,6 +106,40 @@ class ClientController extends Controller
             'clients',
             'openModalOnLoad',
             'isOwner'
+        ));
+    }
+
+    /**
+     * Display a single client's CRM profile and appointment history.
+     */
+    public function show(User $client): View
+    {
+        abort_unless($client->role === 'client', 404);
+
+        $client->load([
+            'appointments' => fn ($query) => $query->orderByDesc('appointment_date')
+                ->orderByDesc('start_time')
+                ->with(['staff.user', 'category']),
+        ]);
+
+        $completedAppointments = $client->appointments->where('status', 'completed');
+        $totalVisits = $completedAppointments->count();
+        $totalSpend = (float) $completedAppointments->sum('price');
+        $loyaltyPoints = (int) floor($totalSpend / 50);
+
+        $membershipTier = match (true) {
+            $totalSpend >= 25000 => 'VIP Platinum',
+            $totalSpend >= 10000 => 'Gold Member',
+            $totalVisits >= 1 => 'Regular',
+            default => 'New Client',
+        };
+
+        return view('clients.show', compact(
+            'client',
+            'totalVisits',
+            'totalSpend',
+            'loyaltyPoints',
+            'membershipTier'
         ));
     }
 
@@ -173,7 +202,7 @@ class ClientController extends Controller
         ]);
 
         if ($previousName !== $validated['name']) {
-            StaffWork::where('client_name', $previousName)->update([
+            Appointment::where('client_id', $client->id)->update([
                 'client_name' => $validated['name'],
             ]);
         }

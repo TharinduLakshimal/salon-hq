@@ -61,7 +61,7 @@
                                 ></div>
                                 <div>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="font-semibold text-slate-900" x-text="client.name"></span>
+                                        <a :href="baseClientsUrl + '/' + client.id" class="font-semibold text-slate-900 hover:text-indigo-600 transition" x-text="client.name"></a>
                                         <span
                                             :class="client.gender === 'female' ? 'bg-pink-50 text-pink-700' : 'bg-sky-50 text-sky-700'"
                                             class="inline-flex items-center justify-center w-4.5 h-4.5 rounded-full text-[11px] font-bold"
@@ -100,18 +100,17 @@
                         </td>
 
                         <td class="px-4 sm:px-5 py-4 whitespace-nowrap font-bold text-slate-900">
-                            Rs. <span x-text="formatNumber(client.total_spent)"></span>
+                            Rs. <span x-text="formatNumber(client.total_spend ?? client.total_spent)"></span>
                         </td>
 
                         <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
                             <div class="inline-flex items-center justify-end gap-1.5">
-                                <button
-                                    type="button"
-                                    @click="selectedClient = client"
+                                <a
+                                    :href="baseClientsUrl + '/' + client.id"
                                     class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition cursor-pointer"
                                 >
                                     Profile
-                                </button>
+                                </a>
                                 <button
                                     type="button"
                                     @click="openEditModal(client)"
@@ -140,6 +139,30 @@
                         </td>
                     </tr>
                 </template>
+
+                <noscript>
+                    @foreach ($clients as $client)
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <a href="{{ route('clients.show', $client) }}" class="font-semibold text-slate-900 hover:text-indigo-600">
+                                    {{ $client->name }}
+                                </a>
+                            </td>
+                            <td class="px-4 sm:px-5 py-4 whitespace-nowrap">{{ $client->phone_number }}</td>
+                            <td class="px-4 sm:px-5 py-4 whitespace-nowrap">{{ $client->membership_tier ?? 'Regular' }}</td>
+                            <td class="px-4 sm:px-5 py-4 whitespace-nowrap">{{ $client->preferred_stylist ?? 'Any Available Stylist' }}</td>
+                            <td class="px-4 sm:px-5 py-4 whitespace-nowrap">
+                                <span class="font-bold text-slate-900">{{ $client->total_visits }}</span> visits
+                            </td>
+                            <td class="px-4 sm:px-5 py-4 whitespace-nowrap font-bold text-slate-900">
+                                Rs. {{ number_format((float) ($client->total_spend ?? 0), 2) }}
+                            </td>
+                            <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
+                                <a href="{{ route('clients.show', $client) }}" class="text-indigo-600 font-semibold">Profile</a>
+                            </td>
+                        </tr>
+                    @endforeach
+                </noscript>
             </tbody>
         </table>
     </div>
